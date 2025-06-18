@@ -1,6 +1,5 @@
 package com.github.kjetilv.eda;
 
-import com.github.kjetilv.eda.MapMemoizers.Option;
 import com.github.kjetilv.eda.hash.Hash;
 import com.github.kjetilv.eda.hash.Hasher;
 import com.github.kjetilv.eda.hash.Hashes;
@@ -23,7 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.github.kjetilv.eda.MapMemoizers.Option.*;
+import static com.github.kjetilv.eda.Option.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MapMemoizersTest {

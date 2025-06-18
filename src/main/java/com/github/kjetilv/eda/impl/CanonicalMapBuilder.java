@@ -1,7 +1,9 @@
 package com.github.kjetilv.eda.impl;
 
+import com.github.kjetilv.eda.KeyNormalizer;
 import com.github.kjetilv.eda.MapMemoizer;
 import com.github.kjetilv.eda.MapMemoizers;
+import com.github.kjetilv.eda.Option;
 import com.github.kjetilv.eda.hash.Hash;
 import com.github.kjetilv.eda.hash.HashBuilder;
 import com.github.kjetilv.eda.hash.Hasher;
@@ -13,9 +15,15 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.github.kjetilv.eda.MapMemoizers.Option.*;
+import static com.github.kjetilv.eda.Option.*;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Use {@link MapMemoizers#create(Option...)} and siblings to create instances of this class.
+ *
+ * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
+ * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
+ */
 public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
 
     private final Map<I, Hash> memoized = new ConcurrentHashMap<>();
@@ -24,7 +32,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
 
     private final Map<Hash, Object> canonicalLeaves = new ConcurrentHashMap<>();
 
-    private final Function<Object, K> keyNormalizer;
+    private final KeyNormalizer<K> keyNormalizer;
 
     private final Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
 
@@ -40,15 +48,22 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
 
     private final boolean gcCompleted;
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Use {@link MapMemoizers#create(Option...)} and siblings to create instances of this class.
+     *
+     * @param hb            Hash builder, not null
+     * @param keyNormalizer Key normalizer, not null
+     * @param hasher        Hasher, not null
+     * @param options       Options
+     */
     public CanonicalMapBuilder(
         Supplier<HashBuilder<byte[]>> hb,
-        Function<?, K> keyNormalizer,
+        KeyNormalizer<K> keyNormalizer,
         Hasher hasher,
-        MapMemoizers.Option... options
+        Option... options
     ) {
         this.hashBuilder = requireNonNull(hb, "hb");
-        this.keyNormalizer = requireNonNull((Function<Object, K>) keyNormalizer, "canonicalKey");
+        this.keyNormalizer = requireNonNull(keyNormalizer, "canonicalKey");
         this.hasher = requireNonNull(hasher, "hasher");
         this.cacheLeaves = !is(OMIT_LEAVES, options);
         this.keepBlanks = is(KEEP_BLANKS, options);
@@ -66,8 +81,8 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
     }
 
     @Override
-    public boolean overflow() {
-        return !overflows.isEmpty();
+    public int overflow() {
+        return overflows.size();
     }
 
     @Override
@@ -88,6 +103,15 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
     public Access<I, K> complete() {
         Map<I, Hash> memoized = Map.copyOf(this.memoized);
         Map<Hash, Map<K, Object>> canonical = canonical();
+        return createAccess(memoized, canonical);
+    }
+
+    @Override
+    public Map<K, ?> apply(I i) {
+        return createAccess(memoized, canonicalMaps).apply(i);
+    }
+
+    private Access<I, K> createAccess(Map<I, Hash> memoized, Map<Hash, Map<K, Object>> canonical) {
         return overflows.isEmpty()
             ? new CanonicalAccess<>(memoized, canonical)
             : new CanonicalOverflowAccess<>(memoized, canonical, Map.copyOf(overflows));
@@ -151,17 +175,6 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
         };
     }
 
-    private static <K> Optional<HashedTree> anyCollision(Map<K, HashedTree> hashedMap) {
-        return anyCollision(hashedMap.values());
-    }
-
-    private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
-        return values
-            .stream()
-            .filter(HashedTree::collision)
-            .findAny();
-    }
-
     private Map<K, Object> canonicalMap(Map<K, HashedTree> map) {
         return Maps.toMap(map.entrySet()
             .stream()
@@ -186,7 +199,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
     }
 
     private K canonicalKey(K key) {
-        return canonicalKeys.computeIfAbsent(key, __ -> keyNormalizer.apply(key));
+        return canonicalKeys.computeIfAbsent(key, __ -> keyNormalizer.toKey(key));
     }
 
     private Map<Hash, Map<K, Object>> canonical() {
@@ -214,9 +227,20 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
         HashBuilder<byte[]> hb = hashBuilder.get();
         hb.hash(Hashes.bytes(tree.size()));
         tree.forEach((key, value) -> {
-            hb.hash(key.toString().getBytes());
+            hb.hash(keyNormalizer.bytes(key));
             hb.hash(value.hash().bytes());
         });
         return hb.get();
+    }
+
+    private static <K> Optional<HashedTree> anyCollision(Map<K, HashedTree> hashedMap) {
+        return anyCollision(hashedMap.values());
+    }
+
+    private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
+        return values
+            .stream()
+            .filter(HashedTree::collision)
+            .findAny();
     }
 }

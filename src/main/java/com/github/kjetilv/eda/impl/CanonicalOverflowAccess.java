@@ -13,7 +13,7 @@ class CanonicalOverflowAccess<I, K> extends AbstractCanonicalMapAccess<I, K> {
         Map<Hash, Map<K, Object>> canonical,
         Map<I, Map<K, Object>> overflows
     ) {
-        super(memoized, canonical, true);
+        super(memoized, canonical, overflows.size());
         this.overflows = overflows;
     }
 

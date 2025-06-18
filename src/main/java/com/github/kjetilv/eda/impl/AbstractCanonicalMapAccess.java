@@ -11,11 +11,11 @@ abstract class AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I,
 
     private final Map<Hash, Map<K, Object>> canonicalMaps;
 
-    private final boolean overflow;
+    private final int overflow;
 
     private final Map<?, Hash> memoized;
 
-    AbstractCanonicalMapAccess(Map<I, Hash> memoized, Map<Hash, Map<K, Object>> canonicalMaps, boolean overflow) {
+    AbstractCanonicalMapAccess(Map<I, Hash> memoized, Map<Hash, Map<K, Object>> canonicalMaps, int overflow) {
         this.memoized = memoized;
         this.canonicalMaps = canonicalMaps;
         this.overflow = overflow;
@@ -27,13 +27,13 @@ abstract class AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I,
     }
 
     @Override
-    public final boolean overflow() {
-        return overflow;
+    public final Map<K, ?> get(I i) {
+        return apply(i);
     }
 
     @Override
-    public final Map<K, ?> get(I i) {
-        return apply(i);
+    public int overflow() {
+        return overflow;
     }
 
     @Override
@@ -54,7 +54,7 @@ abstract class AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I,
 
     private Hash hash(Object key) {
         Hash hash = memoized.get(requireNonNull(key, "key"));
-        if (hash == null && !overflow) {
+        if (hash == null && overflow == 0) {
             throw new IllegalArgumentException("Unknown key: " + key);
         }
         return hash;

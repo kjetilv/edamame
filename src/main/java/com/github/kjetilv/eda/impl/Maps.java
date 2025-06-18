@@ -1,7 +1,8 @@
 package com.github.kjetilv.eda.impl;
 
+import com.github.kjetilv.eda.KeyNormalizer;
+
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -20,7 +21,7 @@ final class Maps {
         return cleanMap(requireNonNull(map, "map"));
     }
 
-    static <K, T> Map<K, Object> normalizeKeys(Map<T, Object> map, Function<T, K> keyNormalizer) {
+    static <K, T> Map<K, Object> normalizeKeys(Map<T, Object> map, KeyNormalizer<K> keyNormalizer) {
         return rewriteMap(keyNormalizer, requireNonNull(map, "map"));
     }
 
@@ -71,18 +72,24 @@ final class Maps {
         };
     }
 
-    private static <K, T> Map<K, Object> rewriteMap(Function<T, K> keyNormalizer, Map<T, Object> map) {
+    private static <K, T> Map<K, Object> rewriteMap(
+        KeyNormalizer<K> keyNormalizer,
+        Map<T, Object> map
+    ) {
         return toMap(map.entrySet()
             .stream()
             .map(entry ->
                 Map.entry(
-                    keyNormalizer.apply(entry.getKey()),
+                    keyNormalizer.toKey(entry.getKey()),
                     rewriteObject(entry.getValue(), keyNormalizer)
                 )));
     }
 
     @SuppressWarnings("unchecked")
-    private static <K, T> Object rewriteObject(Object value, Function<T, K> keyNormalizer) {
+    private static <K, T> Object rewriteObject(
+        Object value,
+        KeyNormalizer<K> keyNormalizer
+    ) {
         return switch (value) {
             case Map<?, ?> map -> rewriteMap(keyNormalizer, (Map<T, Object>) map);
             case Iterable<?> iterable -> stream(iterable)
