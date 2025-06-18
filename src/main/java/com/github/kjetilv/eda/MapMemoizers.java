@@ -29,16 +29,16 @@ public final class MapMemoizers {
     }
 
     /**
-     * @param hb      Provider for new {@link HashBuilder hash builders}
-     * @param options Options
-     * @param <I>     Type of id's
+     * @param newBuilder Provider for new {@link HashBuilder hash builders}
+     * @param options    Options
+     * @param <I>        Type of id's
      * @return {@link MapMemoizer} for String-keyed maps
      */
     public static <I> MapMemoizer<I, String> create(
-        Supplier<HashBuilder<byte[]>> hb,
+        Supplier<HashBuilder<byte[]>> newBuilder,
         Option... options
     ) {
-        return create(hb, null, null, options);
+        return create(newBuilder, null, null, options);
     }
 
     /**
@@ -91,33 +91,32 @@ public final class MapMemoizers {
     }
 
     /**
-     * @param hashBuilderSupplier Provider for new {@link HashBuilder hash builders}, see {@link #create(Supplier, Option...)}
-     * @param keyNormalizer       Key normalizer, see {@link #create(KeyNormalizer, Option...)}
-     * @param options             Options
-     * @param <I>                 Id type
-     * @param <K>                 Key type
+     * @param newBuilder    Provider for new {@link HashBuilder hash builders}, see {@link #create(Supplier, Option...)}
+     * @param keyNormalizer Key normalizer, see {@link #create(KeyNormalizer, Option...)}
+     * @param options       Options
+     * @param <I>           Id type
+     * @param <K>           Key type
      * @return Map memoizer
      * @see #create(KeyNormalizer, Option...)
      * @see #create(Supplier, Option...)
      */
     public static <I, K> MapMemoizer<I, K> create(
-        Supplier<HashBuilder<byte[]>> hashBuilderSupplier,
+        Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
         Hasher hasher,
         Option... options
     ) {
         return new CanonicalMapBuilder<>(
-            hashBuilderSupplier == null ? Hashes::md5HashBuilder : hashBuilderSupplier,
+            newBuilder == null ? Hashes::md5HashBuilder : newBuilder,
             keyNormalizer == null ? KeyNormalizer.keyToString() : keyNormalizer,
-            hasher == null ? defaultHasher(options) : hasher,
+            hasher == null
+                ? new DefaultHasher(newBuilder, is(USE_SYSTEM_HC, options))
+                : hasher,
             options
         );
     }
 
-    private static DefaultHasher defaultHasher(Option... options) {
-        return new DefaultHasher(is(USE_SYSTEM_HC, options));
-    }
-
     private MapMemoizers() {
     }
+
 }

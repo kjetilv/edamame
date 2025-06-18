@@ -4,7 +4,7 @@ import com.github.kjetilv.eda.hash.Hash;
 
 import java.util.Map;
 
-class CanonicalOverflowAccess<I, K> extends AbstractCanonicalMapAccess<I, K> {
+final class CanonicalOverflowAccess<I, K> extends AccessBase<I, K> {
 
     private final Map<I, Map<K, Object>> overflows;
 

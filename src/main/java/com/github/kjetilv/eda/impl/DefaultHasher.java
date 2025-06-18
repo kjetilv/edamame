@@ -8,17 +8,25 @@ import com.github.kjetilv.eda.hash.Hashes;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 public final class DefaultHasher implements Hasher {
 
+    private final Supplier<HashBuilder<byte[]>> newBuilder;
+
     private final ToIntFunction<Object> anyHash;
 
     public DefaultHasher() {
-        this(false);
+        this(null);
     }
 
-    public DefaultHasher(boolean systemHc) {
+    public DefaultHasher(Supplier<HashBuilder<byte[]>> newBuilder) {
+        this(newBuilder, false);
+    }
+
+    public DefaultHasher(Supplier<HashBuilder<byte[]>> newBuilder, boolean systemHc) {
+        this.newBuilder = newBuilder == null ? Hashes::md5HashBuilder : newBuilder;
         this.anyHash = value ->
             systemHc
                 ? System.identityHashCode(value)
@@ -26,17 +34,21 @@ public final class DefaultHasher implements Hasher {
     }
 
     @Override
-    public Hash hash(HashBuilder<byte[]> hb, Object object) {
-        HashBuilder<?> builder = switch (object) {
-            case String string -> hashString(hb.hash(STRING_TYPE), string);
-            case BigDecimal bigDecimal -> hashBigDecimal(hb.hash(BIG_DEC_TYPE), bigDecimal);
-            case BigInteger bigInteger -> hashBigInteger(hb.hash(BIG_INT_TYPE), bigInteger);
-            case UUID uuid -> hashUUID(hb.hash(UUID_TYPE), uuid);
-            case Number number -> hashNumber(hb.hash(NUMBER_TYPE), number);
-            case Boolean bool -> hashString(hb.hash(BOOL_TYPE), Boolean.toString(bool));
-            default -> hashAny(object, hb.hash(OBJECT_TYPE), anyHash);
+    public Hash hash(Object object) {
+        HashBuilder<?> hb = switch (object) {
+            case String string -> hashString(hb().hash(STRING_TYPE), string);
+            case BigDecimal bigDecimal -> hashBigDecimal(hb().hash(BIG_DEC_TYPE), bigDecimal);
+            case BigInteger bigInteger -> hashBigInteger(hb().hash(BIG_INT_TYPE), bigInteger);
+            case UUID uuid -> hashUUID(hb().hash(UUID_TYPE), uuid);
+            case Number number -> hashNumber(hb().hash(NUMBER_TYPE), number);
+            case Boolean bool -> hashString(hb().hash(BOOL_TYPE), Boolean.toString(bool));
+            default -> hashAny(object, hb().hash(OBJECT_TYPE), anyHash);
         };
-        return builder.get();
+        return hb.get();
+    }
+
+    private HashBuilder<byte[]> hb() {
+        return newBuilder.get();
     }
 
     private static final byte[] STRING_TYPE = typeBytes(0);

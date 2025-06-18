@@ -22,27 +22,29 @@ import java.util.function.Function;
 @SuppressWarnings("unused")
 public interface MapMemoizer<I, K> extends Function<I, Map<K, ?>> {
 
-    default void putAll(Map<I, Map<?, ?>> values) {
-        values.forEach(this::put);
-    }
-
     /**
-     * @param i Identifier
+     * @param identifier Identifier
      * @return Stored map
      * @throws IllegalArgumentException If the identifier was unknown
      */
-    default Map<K, ?> get(I i) {
-        return apply(i);
+    default Map<K, ?> get(I identifier) {
+        return apply(identifier);
     }
 
     /**
-     * @param i Identifier
+     * @param identifier Identifier
      * @return Stored map
      * @throws IllegalArgumentException If the identifier was unknown
      */
     @Override
-    default Map<K, ?> apply(I i) {
-        return Map.of();
+    Map<K, ?> apply(I identifier);
+
+    /**
+     * @param values Maps
+     * @see #put(Object, Map)
+     */
+    default void putAll(Map<I, Map<?, ?>> values) {
+        values.forEach(this::put);
     }
 
     /**
@@ -80,21 +82,21 @@ public interface MapMemoizer<I, K> extends Function<I, Map<K, ?>> {
     interface Access<I, K> extends Function<I, Map<K, ?>> {
 
         /**
-         * @param i Identifier
+         * @param identifier Identifier
          * @return Stored map
          * @throws IllegalArgumentException If the identifier was unknown
          */
-        default Map<K, ?> get(I i) {
-            return apply(i);
+        default Map<K, ?> get(I identifier) {
+            return apply(identifier);
         }
 
         /**
-         * @param i Identifier
+         * @param identifier Identifier
          * @return Stored map
          * @throws IllegalArgumentException If the identifier was unknown
          */
         @Override
-        Map<K, ?> apply(I i);
+        Map<K, ?> apply(I identifier);
 
         /**
          * @return Number of maps stored

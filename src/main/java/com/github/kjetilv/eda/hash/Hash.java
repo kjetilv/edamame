@@ -70,4 +70,8 @@ public interface Hash extends Comparable<Hash> {
      * @return Longs
      */
     long[] ls();
+
+    default byte byteAt(int i) {
+        return bytes()[i];
+    }
 }

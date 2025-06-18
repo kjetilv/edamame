@@ -13,13 +13,14 @@ sealed interface HashedTree extends Comparable<HashedTree> {
         return hash().compareTo(o.hash());
     }
 
-    Hash hash();
-
     default boolean collision() {
         return false;
     }
 
+    Hash hash();
+
     record Leaf(Hash hash, Object value) implements HashedTree {
+
         @SuppressWarnings("NullableProblems")
         @Override
         public String toString() {
@@ -28,6 +29,7 @@ sealed interface HashedTree extends Comparable<HashedTree> {
     }
 
     record Node<K>(Hash hash, Map<K, HashedTree> level) implements HashedTree {
+
         @SuppressWarnings("NullableProblems")
         @Override
         public String toString() {
@@ -40,6 +42,7 @@ sealed interface HashedTree extends Comparable<HashedTree> {
     }
 
     record Nodes(Hash hash, List<HashedTree> elements) implements HashedTree {
+
         @SuppressWarnings("NullableProblems")
         @Override
         public String toString() {
@@ -47,7 +50,7 @@ sealed interface HashedTree extends Comparable<HashedTree> {
         }
     }
 
-    record Collision(Hash hash, Object object) implements HashedTree {
+    record Collision(Hash hash) implements HashedTree {
 
         @Override
         public boolean collision() {

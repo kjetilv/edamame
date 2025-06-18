@@ -7,7 +7,7 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
-abstract class AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I, K> {
+abstract class AccessBase<I, K> implements MapMemoizer.Access<I, K> {
 
     private final Map<Hash, Map<K, Object>> canonicalMaps;
 
@@ -15,7 +15,7 @@ abstract class AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I,
 
     private final Map<?, Hash> memoized;
 
-    AbstractCanonicalMapAccess(Map<I, Hash> memoized, Map<Hash, Map<K, Object>> canonicalMaps, int overflow) {
+    AccessBase(Map<I, Hash> memoized, Map<Hash, Map<K, Object>> canonicalMaps, int overflow) {
         this.memoized = memoized;
         this.canonicalMaps = canonicalMaps;
         this.overflow = overflow;
@@ -27,8 +27,8 @@ abstract class AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I,
     }
 
     @Override
-    public final Map<K, ?> get(I i) {
-        return apply(i);
+    public final Map<K, ?> get(I identifier) {
+        return apply(identifier);
     }
 
     @Override
@@ -37,9 +37,8 @@ abstract class AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I,
     }
 
     @Override
-    public final Map<K, ?> apply(I key) {
-        Hash hash = hash(key);
-        return resolved(key, hash);
+    public final Map<K, ?> apply(I identifier) {
+        return resolved(identifier, hash(identifier));
     }
 
     Map<K, Object> canonical(Object key, Hash hash) {

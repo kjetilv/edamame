@@ -33,11 +33,11 @@ class MapMemoizersTest {
         Object bi = new BigInteger("424242");
         Hash collider = randomHash();
 
-        Hasher hasher = (hashBuilder, object) -> {
+        Hasher hasher = (object) -> {
             if (object.equals(bd) || object.equals(bi)) {
                 return collider;
             }
-            return new DefaultHasher().hash(hashBuilder, object);
+            return new DefaultHasher().hash(object);
         };
 
         MapMemoizer<Long, String> cache = MapMemoizers.create(hasher);
@@ -85,12 +85,11 @@ class MapMemoizersTest {
     @ArgumentsSource(OptionsProvider.class)
     void shouldHandleCollisions(Option[] options) {
         Hash collider = randomHash();
-        MapMemoizer<Long, String> cache = MapMemoizers.create(
-            (hashBuilder, object) ->
-                object.equals(Map.of("foo", "3")) || object.equals(Map.of("foo", "7"))
-                    ? collider
-                    : new DefaultHasher().hash(hashBuilder, object), options
-        );
+        Hasher hasher = object ->
+            object.equals(Map.of("foo", "3")) || object.equals(Map.of("foo", "7"))
+                ? collider
+                : new DefaultHasher().hash(object);
+        MapMemoizer<Long, String> cache = MapMemoizers.create(hasher, options);
 
         for (int i = 0; i < 10; i++) {
             cache.put((long) i, Map.of("foo", String.valueOf(i)));
@@ -114,10 +113,8 @@ class MapMemoizersTest {
     @ParameterizedTest
     @ArgumentsSource(OptionsProvider.class)
     void shouldRespectCanonicalKeys(Option[] options) {
-        MapMemoizer<Long, CaKe> cache = MapMemoizers.create(
-            s -> CaKe.get(s.toString()),
-            options
-        );
+        KeyNormalizer<CaKe> caKeKeyNormalizer = s -> CaKe.get(s.toString());
+        MapMemoizer<Long, CaKe> cache = MapMemoizers.create(caKeKeyNormalizer, options);
 
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
@@ -241,8 +238,8 @@ class MapMemoizersTest {
 
     @Test
     void shouldStringify() {
-        MapMemoizer<Long, String> cache =
-            MapMemoizers.create(s -> s.toString().intern());
+        KeyNormalizer<String> stringKeyNormalizer = s -> s.toString().intern();
+        MapMemoizer<Long, String> cache = MapMemoizers.create(stringKeyNormalizer);
 
         cache.put(
             42L,

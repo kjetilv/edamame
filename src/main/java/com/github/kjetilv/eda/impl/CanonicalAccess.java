@@ -5,7 +5,7 @@ import com.github.kjetilv.eda.hash.Hash;
 
 import java.util.Map;
 
-class CanonicalAccess<I, K> extends AbstractCanonicalMapAccess<I, K> implements MapMemoizer.Access<I, K> {
+final class CanonicalAccess<I, K> extends AccessBase<I, K> implements MapMemoizer.Access<I, K> {
 
     CanonicalAccess(Map<I, Hash> memoized, Map<Hash, Map<K, Object>> canonicalMaps) {
         super(memoized, canonicalMaps, 0);
