@@ -39,7 +39,7 @@ public interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>
     HashBuilder<T> hash(T t);
 
     /**
-     * Get the id, reset the underlying hasher.
+     * Get the id, reset the underlying hasher
      *
      * @return Hash
      */
@@ -52,5 +52,4 @@ public interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>
      * @return New hasher that accepts and transforms its input to T
      */
     <R> HashBuilder<R> map(Function<R, T> transform);
-
 }

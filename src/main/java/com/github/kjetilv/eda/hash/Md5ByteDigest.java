@@ -7,7 +7,7 @@ final class Md5ByteDigest implements ByteDigest {
     private final MessageDigest messageDigest;
 
     Md5ByteDigest() {
-        this.messageDigest = messageDigest(MD5);
+        this.messageDigest = newBuilder.get();
     }
 
     @Override
@@ -21,6 +21,10 @@ final class Md5ByteDigest implements ByteDigest {
     }
 
     private static final String MD5 = "MD5";
+
+    private static final ThreadLocal<MessageDigest> newBuilder =
+        ThreadLocal.withInitial(() ->
+            messageDigest(MD5));
 
     @SuppressWarnings("SameParameterValue")
     private static MessageDigest messageDigest(String algorithm) {
