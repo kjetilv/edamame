@@ -119,7 +119,10 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
 
     @SuppressWarnings("unchecked")
     private Map<Object, Object> clean(Map<?, ?> value) {
-        return (Map<Object, Object>) (keepBlanks ? value : Maps.clean(value));
+        return (Map<Object, Object>) (keepBlanks
+            ? value
+            : Maps.clean(value)
+        );
     }
 
     /**

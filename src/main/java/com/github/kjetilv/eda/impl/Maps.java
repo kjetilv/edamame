@@ -21,8 +21,9 @@ final class Maps {
         return cleanMap(requireNonNull(map, "map"));
     }
 
+    @SuppressWarnings("unchecked")
     static <K, T> Map<K, Object> normalizeKeys(Map<T, Object> map, KeyNormalizer<K> keyNormalizer) {
-        return rewriteMap(keyNormalizer, requireNonNull(map, "map"));
+        return (Map<K, Object>) rewriteMap(keyNormalizer, requireNonNull(map, "map"));
     }
 
     static <T> Stream<T> stream(Iterable<T> iterable) {
@@ -47,10 +48,9 @@ final class Maps {
         );
     }
 
-    @SuppressWarnings("unchecked")
     private static Object cleanObject(Object value) {
         return switch (value) {
-            case Map<?, ?> map -> clean((Map<?, Object>) map);
+            case Map<?, ?> map -> clean(map);
             case Iterable<?> iterable -> stream(iterable)
                 .map(Maps::cleanObject)
                 .toList();
@@ -72,9 +72,9 @@ final class Maps {
         };
     }
 
-    private static <K, T> Map<K, Object> rewriteMap(
+    private static <K> Map<K, ?> rewriteMap(
         KeyNormalizer<K> keyNormalizer,
-        Map<T, Object> map
+        Map<?, ?> map
     ) {
         return toMap(map.entrySet()
             .stream()
@@ -85,13 +85,12 @@ final class Maps {
                 )));
     }
 
-    @SuppressWarnings("unchecked")
-    private static <K, T> Object rewriteObject(
+    private static <K> Object rewriteObject(
         Object value,
         KeyNormalizer<K> keyNormalizer
     ) {
         return switch (value) {
-            case Map<?, ?> map -> rewriteMap(keyNormalizer, (Map<T, Object>) map);
+            case Map<?, ?> map -> rewriteMap(keyNormalizer, map);
             case Iterable<?> iterable -> stream(iterable)
                 .map(v ->
                     rewriteObject(v, keyNormalizer))

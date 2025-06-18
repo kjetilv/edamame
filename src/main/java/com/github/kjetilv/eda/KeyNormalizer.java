@@ -12,10 +12,10 @@ package com.github.kjetilv.eda;
  *
  * @param <K>
  */
-@SuppressWarnings("unchecked")
 @FunctionalInterface
 public interface KeyNormalizer<K> {
 
+    @SuppressWarnings("unchecked")
     static <K> KeyNormalizer<K> keyToString() {
         return key -> (K) key.toString();
     }
