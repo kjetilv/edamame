@@ -4,10 +4,7 @@ import com.github.kjetilv.eda.KeyNormalizer;
 import com.github.kjetilv.eda.MapMemoizer;
 import com.github.kjetilv.eda.MapMemoizers;
 import com.github.kjetilv.eda.Option;
-import com.github.kjetilv.eda.hash.Hash;
-import com.github.kjetilv.eda.hash.HashBuilder;
-import com.github.kjetilv.eda.hash.Hasher;
-import com.github.kjetilv.eda.hash.Hashes;
+import com.github.kjetilv.eda.hash.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,7 +47,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
 
-    private final Hasher hasher;
+    private final LeafHasher leafHasher;
 
     private final boolean cacheLeaves;
 
@@ -63,18 +60,18 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
      *
      * @param newBuilder    Hash builder, not null
      * @param keyNormalizer Key normalizer, not null
-     * @param hasher        Hasher, not null
+     * @param leafHasher    Hasher, not null
      * @param options       Options
      */
     public CanonicalMapBuilder(
         Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
-        Hasher hasher,
+        LeafHasher leafHasher,
         Option... options
     ) {
         this.newBuilder = requireNonNull(newBuilder, "newBuilder");
         this.keyNormalizer = requireNonNull(keyNormalizer, "keyNormalizer");
-        this.hasher = requireNonNull(hasher, "hasher");
+        this.leafHasher = requireNonNull(leafHasher, "hasher");
         this.cacheLeaves = !is(OMIT_LEAVES, options);
         this.keepBlanks = is(KEEP_BLANKS, options);
         this.gcCompleted = !is(OMIT_GC, options);
@@ -188,18 +185,18 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
     }
 
     private Hash hashObject(Object object) {
-        return hasher.hash(object);
+        return leafHasher.hash(object);
     }
 
-    private Hash hashTrees(Collection<HashedTree> trees) {
+    private Hash hashTrees(Collection<? extends Hashed> trees) {
         HashBuilder<byte[]> hb = newBuilder.get();
         HashBuilder<Hash> hashHb = hb.map(Hash::bytes);
         hb.<Integer>map(Hashes::bytes).hash(trees.size());
         return hashHb.hash(trees.stream()
-            .map(HashedTree::hash)).get();
+            .map(Hashed::hash)).get();
     }
 
-    private Hash hashMap(Map<K, HashedTree> tree) {
+    private Hash hashMap(Map<K, ? extends Hashed> tree) {
         HashBuilder<byte[]> hb = newBuilder.get();
         HashBuilder<Hash> hashHb = hb.map(Hash::bytes);
         HashBuilder<K> keyHb = hb.map(keyNormalizer::bytes);

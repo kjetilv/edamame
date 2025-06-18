@@ -2,8 +2,8 @@ package com.github.kjetilv.eda.impl;
 
 import com.github.kjetilv.eda.hash.Hash;
 import com.github.kjetilv.eda.hash.HashBuilder;
-import com.github.kjetilv.eda.hash.Hasher;
 import com.github.kjetilv.eda.hash.Hashes;
+import com.github.kjetilv.eda.hash.LeafHasher;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -11,26 +11,23 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
-public final class DefaultHasher implements Hasher {
+public final class DefaultLeafHasher implements LeafHasher {
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
 
     private final ToIntFunction<Object> anyHash;
 
-    public DefaultHasher() {
-        this(null);
+    public DefaultLeafHasher() {
+        this(null, null);
     }
 
-    public DefaultHasher(Supplier<HashBuilder<byte[]>> newBuilder) {
-        this(newBuilder, false);
-    }
-
-    public DefaultHasher(Supplier<HashBuilder<byte[]>> newBuilder, boolean systemHc) {
-        this.newBuilder = newBuilder == null ? Hashes::md5HashBuilder : newBuilder;
-        this.anyHash = value ->
-            systemHc
-                ? System.identityHashCode(value)
-                : value.hashCode();
+    public DefaultLeafHasher(Supplier<HashBuilder<byte[]>> newBuilder, ToIntFunction<Object> anyHash) {
+        this.newBuilder = newBuilder == null
+            ? Hashes::md5HashBuilder
+            : newBuilder;
+        this.anyHash = anyHash == null
+            ? Object::hashCode
+            : anyHash;
     }
 
     @Override

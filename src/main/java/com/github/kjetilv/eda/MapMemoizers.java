@@ -1,10 +1,10 @@
 package com.github.kjetilv.eda;
 
 import com.github.kjetilv.eda.hash.HashBuilder;
-import com.github.kjetilv.eda.hash.Hasher;
 import com.github.kjetilv.eda.hash.Hashes;
+import com.github.kjetilv.eda.hash.LeafHasher;
 import com.github.kjetilv.eda.impl.CanonicalMapBuilder;
-import com.github.kjetilv.eda.impl.DefaultHasher;
+import com.github.kjetilv.eda.impl.DefaultLeafHasher;
 
 import java.util.function.Supplier;
 
@@ -14,7 +14,6 @@ import static com.github.kjetilv.eda.Option.is;
 /**
  * Factory methods for {@link MapMemoizer}s.
  */
-@SuppressWarnings("unused")
 public final class MapMemoizers {
 
     /**
@@ -61,22 +60,22 @@ public final class MapMemoizers {
     }
 
     /**
-     * @param hasher  Hasher
-     * @param options Options
+     * @param leafHasher Hasher
+     * @param options    Options
      * @return Map memoizer
      * @see #create(KeyNormalizer, Option...)
      * @see #create(Supplier, Option...)
      */
     public static <I, K> MapMemoizer<I, K> create(
-        Hasher hasher,
+        LeafHasher leafHasher,
         Option... options
     ) {
-        return create(null, null, hasher, options);
+        return create(null, null, leafHasher, options);
     }
 
     /**
      * @param keyNormalizer Key normalizer, see {@link #create(KeyNormalizer, Option...)}
-     * @param hasher        Hasher
+     * @param leafHasher    Hasher
      * @param options       Options
      * @return Map memoizer
      * @see #create(KeyNormalizer, Option...)
@@ -84,10 +83,10 @@ public final class MapMemoizers {
      */
     public static <I, K> MapMemoizer<I, K> create(
         KeyNormalizer<K> keyNormalizer,
-        Hasher hasher,
+        LeafHasher leafHasher,
         Option... options
     ) {
-        return create(null, keyNormalizer, hasher, options);
+        return create(null, keyNormalizer, leafHasher, options);
     }
 
     /**
@@ -103,15 +102,19 @@ public final class MapMemoizers {
     public static <I, K> MapMemoizer<I, K> create(
         Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
-        Hasher hasher,
+        LeafHasher leafHasher,
         Option... options
     ) {
         return new CanonicalMapBuilder<>(
-            newBuilder == null ? Hashes::md5HashBuilder : newBuilder,
-            keyNormalizer == null ? KeyNormalizer.keyToString() : keyNormalizer,
-            hasher == null
-                ? new DefaultHasher(newBuilder, is(USE_SYSTEM_HC, options))
-                : hasher,
+            newBuilder == null
+                ? Hashes::md5HashBuilder
+                : newBuilder,
+            keyNormalizer == null
+                ? KeyNormalizer.keyToString()
+                : keyNormalizer,
+            leafHasher == null
+                ? defaultLeafHasher(newBuilder, options)
+                : leafHasher,
             options
         );
     }
@@ -119,4 +122,15 @@ public final class MapMemoizers {
     private MapMemoizers() {
     }
 
+    private static DefaultLeafHasher defaultLeafHasher(
+        Supplier<HashBuilder<byte[]>> newBuilder,
+        Option[] options
+    ) {
+        return new DefaultLeafHasher(
+            newBuilder,
+            is(USE_SYSTEM_HC, options)
+                ? System::identityHashCode
+                : Object::hashCode
+        );
+    }
 }

@@ -1,9 +1,9 @@
 package com.github.kjetilv.eda;
 
 import com.github.kjetilv.eda.hash.Hash;
-import com.github.kjetilv.eda.hash.Hasher;
+import com.github.kjetilv.eda.hash.LeafHasher;
 import com.github.kjetilv.eda.hash.Hashes;
-import com.github.kjetilv.eda.impl.DefaultHasher;
+import com.github.kjetilv.eda.impl.DefaultLeafHasher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,14 +33,14 @@ class MapMemoizersTest {
         Object bi = new BigInteger("424242");
         Hash collider = randomHash();
 
-        Hasher hasher = (object) -> {
+        LeafHasher leafHasher = (object) -> {
             if (object.equals(bd) || object.equals(bi)) {
                 return collider;
             }
-            return new DefaultHasher().hash(object);
+            return new DefaultLeafHasher().hash(object);
         };
 
-        MapMemoizer<Long, String> cache = MapMemoizers.create(hasher);
+        MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher);
 
         cache.put(
             42L, Map.of(
@@ -85,11 +85,11 @@ class MapMemoizersTest {
     @ArgumentsSource(OptionsProvider.class)
     void shouldHandleCollisions(Option[] options) {
         Hash collider = randomHash();
-        Hasher hasher = object ->
+        LeafHasher leafHasher = object ->
             object.equals(Map.of("foo", "3")) || object.equals(Map.of("foo", "7"))
                 ? collider
-                : new DefaultHasher().hash(object);
-        MapMemoizer<Long, String> cache = MapMemoizers.create(hasher, options);
+                : new DefaultLeafHasher().hash(object);
+        MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher, options);
 
         for (int i = 0; i < 10; i++) {
             cache.put((long) i, Map.of("foo", String.valueOf(i)));

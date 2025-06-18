@@ -1,12 +1,13 @@
 package com.github.kjetilv.eda.impl;
 
 import com.github.kjetilv.eda.hash.Hash;
+import com.github.kjetilv.eda.hash.Hashed;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-sealed interface HashedTree extends Comparable<HashedTree> {
+sealed interface HashedTree extends Comparable<HashedTree>, Hashed {
 
     @Override
     default int compareTo(HashedTree o) {

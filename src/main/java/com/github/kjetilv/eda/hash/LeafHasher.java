@@ -1,6 +1,6 @@
 package com.github.kjetilv.eda.hash;
 
-public interface Hasher {
+public interface LeafHasher {
 
     Hash hash(Object object);
 }
