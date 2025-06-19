@@ -33,11 +33,11 @@ class MapMemoizersTest {
         Object bi = new BigInteger("424242");
         Hash collider = randomHash();
 
-        LeafHasher leafHasher = (object) -> {
-            if (object.equals(bd) || object.equals(bi)) {
+        LeafHasher leafHasher = (leaf) -> {
+            if (leaf.equals(bd) || leaf.equals(bi)) {
                 return collider;
             }
-            return new DefaultLeafHasher().hash(object);
+            return new DefaultLeafHasher().hash(leaf);
         };
 
         MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher);
@@ -85,10 +85,10 @@ class MapMemoizersTest {
     @ArgumentsSource(OptionsProvider.class)
     void shouldHandleCollisions(Option[] options) {
         Hash collider = randomHash();
-        LeafHasher leafHasher = object ->
-            object.equals(Map.of("foo", "3")) || object.equals(Map.of("foo", "7"))
+        LeafHasher leafHasher = leaf ->
+            leaf.equals(Map.of("foo", "3")) || leaf.equals(Map.of("foo", "7"))
                 ? collider
-                : new DefaultLeafHasher().hash(object);
+                : new DefaultLeafHasher().hash(leaf);
         MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher, options);
 
         for (int i = 0; i < 10; i++) {

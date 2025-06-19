@@ -31,15 +31,15 @@ public final class DefaultLeafHasher implements LeafHasher {
     }
 
     @Override
-    public Hash hash(Object object) {
-        HashBuilder<?> hb = switch (object) {
+    public Hash hash(Object leaf) {
+        HashBuilder<?> hb = switch (leaf) {
             case String string -> hashString(hb().hash(STRING_TYPE), string);
             case BigDecimal bigDecimal -> hashBigDecimal(hb().hash(BIG_DEC_TYPE), bigDecimal);
             case BigInteger bigInteger -> hashBigInteger(hb().hash(BIG_INT_TYPE), bigInteger);
             case UUID uuid -> hashUUID(hb().hash(UUID_TYPE), uuid);
             case Number number -> hashNumber(hb().hash(NUMBER_TYPE), number);
             case Boolean bool -> hashString(hb().hash(BOOL_TYPE), Boolean.toString(bool));
-            default -> hashAny(object, hb().hash(OBJECT_TYPE), anyHash);
+            default -> hashAny(leaf, hb().hash(OBJECT_TYPE), anyHash);
         };
         return hb.get();
     }

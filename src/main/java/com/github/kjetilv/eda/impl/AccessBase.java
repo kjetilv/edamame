@@ -41,7 +41,7 @@ abstract class AccessBase<I, K> implements MapMemoizer.Access<I, K> {
         return resolved(identifier, hash(identifier));
     }
 
-    Map<K, Object> canonical(Object key, Hash hash) {
+    final Map<K, Object> canonical(Object key, Hash hash) {
         Map<K, Object> canonical = canonicalMaps.get(hash);
         if (canonical == null) {
             throw new IllegalStateException("No hash found for key: " + key);
@@ -57,5 +57,10 @@ abstract class AccessBase<I, K> implements MapMemoizer.Access<I, K> {
             throw new IllegalArgumentException("Unknown key: " + key);
         }
         return hash;
+    }
+
+    @Override
+    public final String toString() {
+        return getClass().getSimpleName() + "[" + memoized + (overflow > 0 ? " overflow=" + overflow : "") + "]";
     }
 }

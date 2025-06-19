@@ -2,5 +2,5 @@ package com.github.kjetilv.eda.hash;
 
 public interface LeafHasher {
 
-    Hash hash(Object object);
+    Hash hash(Object leaf);
 }

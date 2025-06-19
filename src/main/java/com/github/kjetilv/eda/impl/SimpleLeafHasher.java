@@ -6,7 +6,7 @@ import com.github.kjetilv.eda.hash.LeafHasher;
 public final class SimpleLeafHasher implements LeafHasher {
 
     @Override
-    public Hash hash(Object object) {
-        return Hash.of(0L, object.hashCode());
+    public Hash hash(Object leaf) {
+        return Hash.of(0L, leaf.hashCode());
     }
 }

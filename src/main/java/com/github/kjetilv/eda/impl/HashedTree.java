@@ -29,12 +29,12 @@ sealed interface HashedTree extends Comparable<HashedTree>, Hashed {
         }
     }
 
-    record Node<K>(Hash hash, Map<K, HashedTree> level) implements HashedTree {
+    record Node<K>(Hash hash, Map<K, HashedTree> tree) implements HashedTree {
 
         @SuppressWarnings("NullableProblems")
         @Override
         public String toString() {
-            String keys = level.keySet()
+            String keys = tree.keySet()
                 .stream()
                 .map(Object::toString)
                 .collect(Collectors.joining(", "));
@@ -42,12 +42,12 @@ sealed interface HashedTree extends Comparable<HashedTree>, Hashed {
         }
     }
 
-    record Nodes(Hash hash, List<HashedTree> elements) implements HashedTree {
+    record Nodes(Hash hash, List<HashedTree> values) implements HashedTree {
 
         @SuppressWarnings("NullableProblems")
         @Override
         public String toString() {
-            return getClass().getSimpleName() + "[" + hash.toString() + ": " + elements.size() + " elements]";
+            return getClass().getSimpleName() + "[" + hash.toString() + ": " + values.size() + " elements]";
         }
     }
 

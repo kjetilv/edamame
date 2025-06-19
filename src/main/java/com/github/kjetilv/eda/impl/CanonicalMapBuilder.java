@@ -6,6 +6,7 @@ import com.github.kjetilv.eda.MapMemoizers;
 import com.github.kjetilv.eda.Option;
 import com.github.kjetilv.eda.hash.*;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -176,8 +177,19 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
         return switch (object) {
             case Map<?, ?> map -> hashedMap((Map<K, Object>) map);
             case Iterable<?> iterable -> hashedNodes(iterable);
-            default -> hashedLeaf(object);
+            default -> object.getClass().isArray()
+                ? hashedNodes(iterable(object))
+                : hashedLeaf(object);
         };
+    }
+
+    private static Iterable<?> iterable(Object object) {
+        int length = Array.getLength(object);
+        List<Object> list = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            list.add(Array.get(object, i));
+        }
+        return list;
     }
 
     private K canonicalKey(K key) {
@@ -221,12 +233,12 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
     private Object canonical(HashedTree tree) {
         return switch (tree) {
             case HashedTree.Node<?> node -> canonicalMaps.get(node.hash());
-            case HashedTree.Nodes(Hash ignored, List<HashedTree> values) -> values.stream()
+            case HashedTree.Nodes(Hash __, List<HashedTree> values) -> values.stream()
                 .map(this::canonical)
                 .collect(Collectors.toList());
-            case HashedTree.Leaf(Hash hash, Object object) -> cacheLeaves
-                ? canonicalLeaves.getOrDefault(hash, object)
-                : object;
+            case HashedTree.Leaf(Hash hash, Object value) -> cacheLeaves
+                ? canonicalLeaves.getOrDefault(hash, value)
+                : value;
             case HashedTree.Collision collision -> collision;
         };
     }
