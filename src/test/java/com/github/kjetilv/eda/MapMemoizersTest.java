@@ -1,8 +1,8 @@
 package com.github.kjetilv.eda;
 
 import com.github.kjetilv.eda.hash.Hash;
-import com.github.kjetilv.eda.hash.LeafHasher;
 import com.github.kjetilv.eda.hash.Hashes;
+import com.github.kjetilv.eda.hash.LeafHasher;
 import com.github.kjetilv.eda.impl.DefaultLeafHasher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -31,14 +31,7 @@ class MapMemoizersTest {
     void shouldHandleLeafCollisions() {
         Object bd = new BigDecimal("123.234");
         Object bi = new BigInteger("424242");
-        Hash collider = randomHash();
-
-        LeafHasher leafHasher = (leaf) -> {
-            if (leaf.equals(bd) || leaf.equals(bi)) {
-                return collider;
-            }
-            return new DefaultLeafHasher().hash(leaf);
-        };
+        LeafHasher leafHasher = collidingLeafHasher();
 
         MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher);
 
@@ -86,7 +79,7 @@ class MapMemoizersTest {
     void shouldHandleCollisions(Option[] options) {
         Hash collider = randomHash();
         LeafHasher leafHasher = leaf ->
-            leaf.equals(Map.of("foo", "3")) || leaf.equals(Map.of("foo", "7"))
+            leaf.equals("3") || leaf.equals("7")
                 ? collider
                 : new DefaultLeafHasher().hash(leaf);
         MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher, options);
@@ -96,17 +89,8 @@ class MapMemoizersTest {
         }
         MapMemoizer.Access<Long, String> access = cache.complete();
         for (int i = 0; i < 10; i++) {
-            assertEquals(
-                Map.of("foo", String.valueOf(i)),
-                access.get((long) i)
-            );
-        }
-
-        for (int i = 0; i < 5; i++) {
-            assertEquals(
-                Map.of("foo", String.valueOf(i)),
-                access.get((long) i)
-            );
+            Map<String, String> reconstructed = Map.of("foo", String.valueOf(i));
+            assertEquals(reconstructed, access.get((long) i));
         }
     }
 
@@ -460,6 +444,11 @@ class MapMemoizersTest {
 
         assertSame(bd, access.get(43L).get("zot2"));
         assertSame(bi, access.get(43L).get("zot1"));
+    }
+
+    private static LeafHasher collidingLeafHasher() {
+        Hash collider = randomHash();
+        return leaf -> collider;
     }
 
     private static Hash randomHash() {
