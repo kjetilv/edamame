@@ -32,13 +32,13 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
 
     private final Map<Hash, Object> canonicalLeaves = new ConcurrentHashMap<>();
 
-    private final KeyNormalizer<K> keyNormalizer;
-
-    private final Map<Object, K> canonicalIdentifiers = new ConcurrentHashMap<>();
+    private final Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
 
     private final Map<I, Map<K, Object>> overflows = new ConcurrentHashMap<>();
 
-    private final Lock completeLock = new ReentrantLock();
+    private final Lock lock = new ReentrantLock();
+
+    private final KeyNormalizer<K> keyNormalizer;
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
 
@@ -96,45 +96,45 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
 
     @Override
     public void put(I identifier, Map<?, ?> value) {
-        failForked();
-        if (complete) {
-            throw new IllegalStateException("Already complete, cannot accept identifier " + identifier);
-        }
-        requireNonNull(identifier, "identifier");
-        requireNonNull(value, "value");
-        Map<Object, Object> cleaned = clean(value);
-        Map<K, Object> identified = Maps.normalizeIdentifiers(cleaned, keyNormalizer);
-        HashedTree node = hashedMap(identified);
-        if (node instanceof HashedTree.Collision) {
-            overflows.put(identifier, identified);
-        } else {
-            memoized.put(identifier, node.hash());
+        Map<K, Object> identified = identify(value);
+        lock.lock();
+        try {
+            doPut(requireNonNull(identifier, "identifier"), identified);
+        } finally {
+            lock.unlock();
         }
     }
 
     @Override
     public Access<I, K> complete() {
-        completeLock.lock();
+        lock.lock();
         try {
-            failForked();
-            Map<Hash, Map<K, Object>> canonicalMaps = gcCompleted
-                ? prunedCanonical(this.canonicalMaps, memoized.values())
-                : Map.copyOf(this.canonicalMaps);
-            if (forkComplete) {
-                forked = true;
-                return AccessBase.create(Map.copyOf(this.memoized), canonicalMaps, overflows);
-            }
-            this.canonicalMaps = canonicalMaps;
-            this.canonicalLeaves.clear();
-            this.canonicalIdentifiers.clear();
-            return this;
+            return doComplete();
         } finally {
-            completeLock.unlock();
+            lock.unlock();
         }
     }
 
     @Override
     public Map<K, ?> get(I identifier) {
+        lock.lock();
+        try {
+            return doGet(identifier);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<K, Object> identify(Map<?, ?> value) {
+        requireNonNull(value, "value");
+        return Maps.normalizeIdentifiers(
+            (Map<Object, Object>) (keepBlanks ? value : Maps.clean(value)),
+            keyNormalizer
+        );
+    }
+
+    private Map<K, Object> doGet(I identifier) {
         Hash hash = memoized.get(requireNonNull(identifier, "identifier"));
         if (hash == null) {
             if (overflows.isEmpty()) {
@@ -153,9 +153,36 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
         return map;
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<Object, Object> clean(Map<?, ?> value) {
-        return (Map<Object, Object>) (keepBlanks ? value : Maps.clean(value));
+    private void doPut(I identifier, Map<K, Object> value) {
+        failForked();
+        if (complete) {
+            throw new IllegalStateException("Already complete, cannot accept identifier " + identifier);
+        }
+        HashedTree node = hashedMap(value);
+        if (node instanceof HashedTree.Collision) {
+            overflows.put(identifier, value);
+        } else {
+            memoized.put(identifier, node.hash());
+        }
+    }
+
+    private Access<I, K> doComplete() {
+        failForked();
+        if (complete) {
+            return this;
+        }
+        Map<Hash, Map<K, Object>> canonicalMaps = gcCompleted
+            ? prunedCanonical(this.canonicalMaps, memoized.values())
+            : Map.copyOf(this.canonicalMaps);
+        if (forkComplete) {
+            forked = true;
+            return AccessBase.create(Map.copyOf(this.memoized), canonicalMaps, overflows);
+        }
+        this.canonicalMaps = canonicalMaps;
+        this.canonicalLeaves.clear();
+        this.canonicalKeys.clear();
+        this.complete = true;
+        return this;
     }
 
     /**
@@ -168,27 +195,15 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
             .map(e ->
                 Map.entry(canonicalKey(e.getKey()), hashedTree(e.getValue()))
             ));
-        return anyCollision(hashedMap.values())
-            .orElseGet(() -> {
-                Hash hash = hashMap(hashedMap);
-                Map<K, Object> existing =
-                    canonicalMaps.computeIfAbsent(
-                        hash,
-                        __ -> canonicalMap(hashedMap)
-                    );
-                return existing == null || existing.equals(map)
-                    ? new HashedTree.Node<>(hash, hashedMap)
-                    : new HashedTree.Collision(hash);
-            });
+        return anyCollision(hashedMap.values()).orElseGet(() -> resolveCanonical(map, hashedMap));
     }
 
     private HashedTree hashedNodes(Iterable<?> multiple) {
-        List<HashedTree> elements = Maps.stream(multiple)
+        List<HashedTree> values = Maps.stream(multiple)
             .map(this::hashedTree)
             .toList();
-        return anyCollision(elements)
-            .orElseGet(() ->
-                new HashedTree.Nodes(hashTrees(elements), elements));
+        return anyCollision(values)
+            .orElseGet(() -> new HashedTree.Nodes(hashTrees(values), values));
     }
 
     private HashedTree hashedLeaf(Object object) {
@@ -213,24 +228,23 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
         };
     }
 
+    private HashedTree resolveCanonical(Map<K, Object> map, Map<K, HashedTree> hashedMap) {
+        Hash hash = hashMap(hashedMap);
+        Map<K, Object> existing =
+            canonicalMaps.computeIfAbsent(hash, __ -> canonicalMap(hashedMap));
+        return existing == null || existing.equals(map)
+            ? new HashedTree.Node<>(hash, hashedMap)
+            : new HashedTree.Collision(hash);
+    }
+
     private void failForked() {
         if (forkComplete && forked) {
             throw new IllegalStateException("Already forked");
         }
     }
 
-    private static Iterable<?> iterable(Object object) {
-        int length = Array.getLength(object);
-        List<Object> list = new ArrayList<>(length);
-        for (int i = 0; i < length; i++) {
-            list.add(Array.get(object, i));
-        }
-        return list;
-    }
-
     private K canonicalKey(K key) {
-        return canonicalIdentifiers.computeIfAbsent(key,
-            __ -> keyNormalizer.toKey(key));
+        return canonicalKeys.computeIfAbsent(key, __ -> keyNormalizer.toKey(key));
     }
 
     private Hash hashObject(Object object) {
@@ -278,6 +292,15 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
                 : value;
             case HashedTree.Collision collision -> collision;
         };
+    }
+
+    private static Iterable<?> iterable(Object object) {
+        int length = Array.getLength(object);
+        List<Object> list = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            list.add(Array.get(object, i));
+        }
+        return list;
     }
 
     private static <K> Map<Hash, Map<K, Object>> prunedCanonical(
