@@ -9,6 +9,16 @@ import static java.util.Objects.requireNonNull;
 
 abstract class AccessBase<I, K> implements MapMemoizer.Access<I, K> {
 
+    static <I, K> MapMemoizer.Access<I, K> create(
+        Map<I, Hash> memoized,
+        Map<Hash, Map<K, Object>> canonical,
+        Map<I, Map<K, Object>> overflows
+    ) {
+        return overflows.isEmpty()
+            ? new CanonicalAccess<>(memoized, canonical)
+            : new CanonicalOverflowAccess<>(memoized, canonical, Map.copyOf(overflows));
+    }
+
     private final Map<Hash, Map<K, Object>> canonicalMaps;
 
     private final int overflow;
@@ -27,17 +37,12 @@ abstract class AccessBase<I, K> implements MapMemoizer.Access<I, K> {
     }
 
     @Override
-    public final Map<K, ?> get(I identifier) {
-        return apply(identifier);
-    }
-
-    @Override
     public int overflow() {
         return overflow;
     }
 
     @Override
-    public final Map<K, ?> apply(I identifier) {
+    public final Map<K, ?> get(I identifier) {
         return resolved(identifier, hash(identifier));
     }
 

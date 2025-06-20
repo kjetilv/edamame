@@ -1,7 +1,6 @@
 package com.github.kjetilv.eda;
 
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * The Map memoizer! Maps will be stored in canonical form, avoiding memory wasted on identical instances.
@@ -20,24 +19,14 @@ import java.util.function.Function;
  * @param <K> Key type, used as keys in stored maps
  */
 @SuppressWarnings("unused")
-public interface MapMemoizer<I, K> extends Function<I, Map<K, ?>> {
+public interface MapMemoizer<I, K>  {
 
     /**
      * @param identifier Identifier
      * @return Stored map
      * @throws IllegalArgumentException If the identifier was unknown
      */
-    default Map<K, ?> get(I identifier) {
-        return apply(identifier);
-    }
-
-    /**
-     * @param identifier Identifier
-     * @return Stored map
-     * @throws IllegalArgumentException If the identifier was unknown
-     */
-    @Override
-    Map<K, ?> apply(I identifier);
+    Map<K, ?> get(I identifier);
 
     /**
      * @param values Maps
@@ -79,24 +68,14 @@ public interface MapMemoizer<I, K> extends Function<I, Map<K, ?>> {
      */
     Access<I, K> complete();
 
-    interface Access<I, K> extends Function<I, Map<K, ?>> {
+    interface Access<I, K>  {
 
         /**
          * @param identifier Identifier
          * @return Stored map
          * @throws IllegalArgumentException If the identifier was unknown
          */
-        default Map<K, ?> get(I identifier) {
-            return apply(identifier);
-        }
-
-        /**
-         * @param identifier Identifier
-         * @return Stored map
-         * @throws IllegalArgumentException If the identifier was unknown
-         */
-        @Override
-        Map<K, ?> apply(I identifier);
+        Map<K, ?> get(I identifier);
 
         /**
          * @return Number of maps stored

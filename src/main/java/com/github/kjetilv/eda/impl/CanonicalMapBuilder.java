@@ -9,6 +9,8 @@ import com.github.kjetilv.eda.hash.*;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -22,21 +24,11 @@ import static java.util.Objects.requireNonNull;
  * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
-public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
-
-    static <I, K> Access<I, K> create(
-        Map<I, Hash> memoized,
-        Map<Hash, Map<K, Object>> canonical,
-        Map<I, Map<K, Object>> overflows
-    ) {
-        return overflows.isEmpty()
-            ? new CanonicalAccess<>(memoized, canonical)
-            : new CanonicalOverflowAccess<>(memoized, canonical, Map.copyOf(overflows));
-    }
+public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
 
     private final Map<I, Hash> memoized = new ConcurrentHashMap<>();
 
-    private final Map<Hash, Map<K, Object>> canonicalMaps = new ConcurrentHashMap<>();
+    private Map<Hash, Map<K, Object>> canonicalMaps = new ConcurrentHashMap<>();
 
     private final Map<Hash, Object> canonicalLeaves = new ConcurrentHashMap<>();
 
@@ -45,6 +37,8 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
     private final Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
 
     private final Map<I, Map<K, Object>> overflows = new ConcurrentHashMap<>();
+
+    private final Lock completeLock = new ReentrantLock();
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
 
@@ -55,6 +49,10 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
     private final boolean keepBlanks;
 
     private final boolean gcCompleted;
+
+    private final boolean forkComplete;
+
+    private boolean forked;
 
     /**
      * Use {@link MapMemoizers#create(Option...)} and siblings to create instances of this class.
@@ -76,6 +74,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
         this.cacheLeaves = !is(OMIT_LEAVES, options);
         this.keepBlanks = is(KEEP_BLANKS, options);
         this.gcCompleted = !is(OMIT_GC, options);
+        this.forkComplete = is(FORK_COMPLETE, options);
     }
 
     @Override
@@ -95,6 +94,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
 
     @Override
     public void put(I key, Map<?, ?> value) {
+        failForked();
         requireNonNull(key, "key");
         requireNonNull(value, "value");
         Map<Object, Object> cleaned = clean(value);
@@ -109,18 +109,28 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
 
     @Override
     public Access<I, K> complete() {
-        return create(
-            Map.copyOf(this.memoized),
-            gcCompleted
-                ? prunedCanonical(canonicalMaps, memoized.values())
-                : Map.copyOf(canonicalMaps),
-            overflows
-        );
+        completeLock.lock();
+        try {
+            failForked();
+            Map<Hash, Map<K, Object>> canonicalMaps = gcCompleted
+                ? prunedCanonical(this.canonicalMaps, memoized.values())
+                : Map.copyOf(this.canonicalMaps);
+            if (forkComplete) {
+                forked = true;
+                return AccessBase.create(Map.copyOf(this.memoized), canonicalMaps, overflows);
+            }
+            this.canonicalMaps = canonicalMaps;
+            this.canonicalLeaves.clear();
+            this.canonicalKeys.clear();
+            return this;
+        } finally {
+            completeLock.unlock();
+        }
     }
 
     @Override
-    public Map<K, ?> apply(I identifier) {
-        return create(memoized, canonicalMaps, overflows).get(identifier);
+    public Map<K, ?> get(I identifier) {
+        return AccessBase.create(memoized, canonicalMaps, overflows).get(identifier);
     }
 
     @SuppressWarnings("unchecked")
@@ -181,6 +191,12 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K> {
                 ? hashedNodes(iterable(object))
                 : hashedLeaf(object);
         };
+    }
+
+    private void failForked() {
+        if (forkComplete && forked) {
+            throw new IllegalStateException("Already forked");
+        }
     }
 
     private static Iterable<?> iterable(Object object) {

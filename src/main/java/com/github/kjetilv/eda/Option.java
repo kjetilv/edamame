@@ -22,7 +22,11 @@ public enum Option {
      * For leaf values without explicit hash logic, use {@link System#identityHashCode(Object) identity hash code}
      * for hashing.  This will work for objects that don't
      */
-    USE_SYSTEM_HC;
+    USE_SYSTEM_HC,
+    /**
+     * On completion, split to a new accessor and leave the mapmemoizer free to accept more maps
+     */
+    FORK_COMPLETE;
 
     public static boolean is(Option option, Option... options) {
         return Set.of(options).contains(option);

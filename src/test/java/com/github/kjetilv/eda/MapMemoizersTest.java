@@ -118,13 +118,14 @@ class MapMemoizersTest {
                 "2", hh0hh2
             )
         );
+        Map<String, Object> in48 = build42(zot1Zot2());
 
         cache.put(42L, in42);
-        cache.put(48L, build42(zot1Zot2()));
-        Map<CaKe, ?> out42 = cache.complete().get(42L);
-        Map<CaKe, ?> out42as48 = cache.complete().get(48L);
+        cache.put(48L, in48);
+        Map<CaKe, ?> out42 = cache.get(42L);
+        Map<CaKe, ?> out42as48 = cache.get(48L);
         assertSame(
-            cache.complete().get(42L),
+            cache.get(42L),
             out42as48,
             "Same structure should return same identity"
         );
@@ -513,7 +514,15 @@ class MapMemoizersTest {
                 Arguments.of((Object) new Option[] {OMIT_GC}),
                 Arguments.of((Object) new Option[] {OMIT_LEAVES, OMIT_GC}),
                 Arguments.of((Object) new Option[] {KEEP_BLANKS, OMIT_GC}),
-                Arguments.of((Object) new Option[] {KEEP_BLANKS, OMIT_LEAVES, OMIT_GC})
+                Arguments.of((Object) new Option[] {KEEP_BLANKS, OMIT_LEAVES, OMIT_GC}),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, }),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, OMIT_LEAVES}),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS}),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS, OMIT_LEAVES}),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, OMIT_GC}),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, OMIT_LEAVES, OMIT_GC}),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS, OMIT_GC}),
+                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS, OMIT_LEAVES, OMIT_GC})
             );
         }
     }
