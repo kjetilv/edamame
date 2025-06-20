@@ -39,10 +39,10 @@ public interface MapMemoizer<I, K>  {
     /**
      * Store one map
      *
-     * @param key   Identifier
+     * @param identifier   Identifier
      * @param value Map
      */
-    void put(I key, Map<?, ?> value);
+    void put(I identifier, Map<?, ?> value);
 
     /**
      * @return Number of maps stored

@@ -22,7 +22,7 @@ final class Maps {
     }
 
     @SuppressWarnings("unchecked")
-    static <K, T> Map<K, Object> normalizeKeys(Map<T, Object> map, KeyNormalizer<K> keyNormalizer) {
+    static <K, T> Map<K, Object> normalizeIdentifiers(Map<T, Object> map, KeyNormalizer<K> keyNormalizer) {
         return (Map<K, Object>) rewriteMap(keyNormalizer, requireNonNull(map, "map"));
     }
 

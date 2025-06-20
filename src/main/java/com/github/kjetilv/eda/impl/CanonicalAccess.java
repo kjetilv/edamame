@@ -12,7 +12,7 @@ final class CanonicalAccess<I, K> extends AccessBase<I, K> implements MapMemoize
     }
 
     @Override
-    protected Map<K, ?> resolved(I key, Hash hash) {
-        return canonical(key, hash);
+    protected Map<K, ?> resolved(I identifier, Hash hash) {
+        return canonical(identifier, hash);
     }
 }

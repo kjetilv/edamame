@@ -34,7 +34,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
 
     private final KeyNormalizer<K> keyNormalizer;
 
-    private final Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
+    private final Map<Object, K> canonicalIdentifiers = new ConcurrentHashMap<>();
 
     private final Map<I, Map<K, Object>> overflows = new ConcurrentHashMap<>();
 
@@ -53,6 +53,8 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
     private final boolean forkComplete;
 
     private boolean forked;
+
+    private boolean complete;
 
     /**
      * Use {@link MapMemoizers#create(Option...)} and siblings to create instances of this class.
@@ -93,17 +95,20 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
     }
 
     @Override
-    public void put(I key, Map<?, ?> value) {
+    public void put(I identifier, Map<?, ?> value) {
         failForked();
-        requireNonNull(key, "key");
+        if (complete) {
+            throw new IllegalStateException("Already complete, cannot accept identifier " + identifier);
+        }
+        requireNonNull(identifier, "identifier");
         requireNonNull(value, "value");
         Map<Object, Object> cleaned = clean(value);
-        Map<K, Object> keyed = Maps.normalizeKeys(cleaned, keyNormalizer);
-        HashedTree node = hashedMap(keyed);
+        Map<K, Object> identified = Maps.normalizeIdentifiers(cleaned, keyNormalizer);
+        HashedTree node = hashedMap(identified);
         if (node instanceof HashedTree.Collision) {
-            overflows.put(key, keyed);
+            overflows.put(identifier, identified);
         } else {
-            memoized.put(key, node.hash());
+            memoized.put(identifier, node.hash());
         }
     }
 
@@ -121,7 +126,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
             }
             this.canonicalMaps = canonicalMaps;
             this.canonicalLeaves.clear();
-            this.canonicalKeys.clear();
+            this.canonicalIdentifiers.clear();
             return this;
         } finally {
             completeLock.unlock();
@@ -130,14 +135,14 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
 
     @Override
     public Map<K, ?> get(I identifier) {
-        Hash hash = memoized.get(requireNonNull(identifier, "key"));
+        Hash hash = memoized.get(requireNonNull(identifier, "identifier"));
         if (hash == null) {
             if (overflows.isEmpty()) {
-                throw new IllegalArgumentException("Unknown key: " + identifier);
+                throw new IllegalArgumentException("Unknown identifier: " + identifier);
             }
             Map<K, Object> map = overflows.get(identifier);
             if (map == null) {
-                throw new IllegalArgumentException("Unknown key: " + identifier);
+                throw new IllegalArgumentException("Unknown identifier: " + identifier);
             }
             return map;
         }
@@ -224,7 +229,8 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
     }
 
     private K canonicalKey(K key) {
-        return canonicalKeys.computeIfAbsent(key, __ -> keyNormalizer.toKey(key));
+        return canonicalIdentifiers.computeIfAbsent(key,
+            __ -> keyNormalizer.toKey(key));
     }
 
     private Hash hashObject(Object object) {

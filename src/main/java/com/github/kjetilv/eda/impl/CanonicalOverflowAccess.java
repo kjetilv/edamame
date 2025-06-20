@@ -18,14 +18,14 @@ final class CanonicalOverflowAccess<I, K> extends AccessBase<I, K> {
     }
 
     @Override
-    protected Map<K, ?> resolved(I key, Hash hash) {
-        return hash == null ? overflow(key) : canonical(key, hash);
+    protected Map<K, ?> resolved(I identifier, Hash hash) {
+        return hash == null ? overflow(identifier) : canonical(identifier, hash);
     }
 
-    private Map<K, ?> overflow(I key) {
-        Map<K, Object> overflow = overflows.get(key);
+    private Map<K, ?> overflow(I identifier) {
+        Map<K, Object> overflow = overflows.get(identifier);
         if (overflow == null) {
-            throw new IllegalArgumentException("Unknown key: " + key);
+            throw new IllegalArgumentException("Unknown identifier: " + identifier);
         }
         return overflow;
     }
