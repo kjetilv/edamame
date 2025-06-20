@@ -130,7 +130,22 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
 
     @Override
     public Map<K, ?> get(I identifier) {
-        return AccessBase.create(memoized, canonicalMaps, overflows).get(identifier);
+        Hash hash = memoized.get(requireNonNull(identifier, "key"));
+        if (hash == null) {
+            if (overflows.isEmpty()) {
+                throw new IllegalArgumentException("Unknown key: " + identifier);
+            }
+            Map<K, Object> map = overflows.get(identifier);
+            if (map == null) {
+                throw new IllegalArgumentException("Unknown key: " + identifier);
+            }
+            return map;
+        }
+        Map<K, Object> map = canonicalMaps.get(hash);
+        if (map == null) {
+            throw new IllegalStateException("No hash for: " + identifier);
+        }
+        return map;
     }
 
     @SuppressWarnings("unchecked")
