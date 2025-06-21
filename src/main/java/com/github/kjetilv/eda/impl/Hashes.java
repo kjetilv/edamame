@@ -59,15 +59,7 @@ final class Hashes {
     private Hashes() {
     }
 
-    static final char GOOD_1 = '-';
-
-    static final char GOOD_2 = '_';
-
-    static final char BAD_2 = '+';
-
-    static final char BAD_1 = '/';
-
-    static final String PADDING = "==";
+    private static final String PADDING = "==";
 
     private static final int RAW_LEN = Hash.DIGEST_LEN + PADDING.length();
 
@@ -99,8 +91,8 @@ final class Hashes {
         String base64 = new String(ENCODER.encode(bytes), ISO_8859_1);
         if (base64.length() == RAW_LEN && base64.endsWith(PADDING)) {
             return base64.substring(0, Hash.DIGEST_LEN)
-                .replace(BAD_1, GOOD_1)
-                .replace(BAD_2, GOOD_2);
+                .replace('/', '-')
+                .replace('+', '_');
         }
         throw new IllegalStateException("Unusual hash: " + base64);
     }
