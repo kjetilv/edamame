@@ -277,6 +277,6 @@ public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Acc
 
     private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
         return values.stream()
-            .filter(HashedTree::collision).findAny();
+            .filter(HashedTree.Collision.class::isInstance).findAny();
     }
 }

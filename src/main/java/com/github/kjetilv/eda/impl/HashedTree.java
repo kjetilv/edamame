@@ -11,10 +11,6 @@ sealed interface HashedTree extends Comparable<HashedTree> {
         return hash().compareTo(o.hash());
     }
 
-    default boolean collision() {
-        return false;
-    }
-
     Hash hash();
 
     record Leaf(Hash hash, Object value) implements HashedTree {
@@ -49,10 +45,5 @@ sealed interface HashedTree extends Comparable<HashedTree> {
     }
 
     record Collision(Hash hash) implements HashedTree {
-
-        @Override
-        public boolean collision() {
-            return true;
-        }
     }
 }
