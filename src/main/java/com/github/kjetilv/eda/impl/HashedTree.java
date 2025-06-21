@@ -3,12 +3,7 @@ package com.github.kjetilv.eda.impl;
 import java.util.List;
 import java.util.Map;
 
-sealed interface HashedTree extends Comparable<HashedTree> {
-
-    @Override
-    default int compareTo(HashedTree o) {
-        return hash().compareTo(o.hash());
-    }
+sealed interface HashedTree {
 
     Hash hash();
 

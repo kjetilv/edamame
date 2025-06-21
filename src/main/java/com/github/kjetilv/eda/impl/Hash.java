@@ -1,12 +1,10 @@
 package com.github.kjetilv.eda.impl;
 
-import java.util.Arrays;
-
 /**
- * A 256-bit hash, exposed as four longs.
+ * A 128-bit hash, exposed as two longs.
  */
 @FunctionalInterface
-public interface Hash extends Comparable<Hash> {
+public interface Hash {
 
     /**
      * @return Unique string representation
@@ -20,11 +18,6 @@ public interface Hash extends Comparable<Hash> {
      */
     default byte[] bytes() {
         return Hashes.bytes(this);
-    }
-
-    @Override
-    default int compareTo(Hash o) {
-        return Arrays.compare(ls(), o.ls());
     }
 
     /**
