@@ -9,7 +9,7 @@ import java.util.Arrays;
 public interface Hash extends Comparable<Hash> {
 
     /**
-     * @return Unique 43-char string representation
+     * @return Unique string representation
      */
     default String digest() {
         return Hashes.digest(this);
@@ -28,7 +28,7 @@ public interface Hash extends Comparable<Hash> {
     }
 
     /**
-     * The longs,
+     * The longs
      *
      * @return Longs
      */
