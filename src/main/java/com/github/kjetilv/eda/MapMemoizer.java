@@ -3,12 +3,12 @@ package com.github.kjetilv.eda;
 import java.util.Map;
 
 /**
- * The Map memoizer! Maps will be stored in canonical form, avoiding memory wasted on identical instances.
+ * The Map memoizer! Maps will be stored in canonical form, avoiding memory wasted on identical trees.
  *
  * @param <I> Id type, used to identify maps
  * @param <K> Key type, used as keys in stored maps
  */
-public interface MapMemoizer<I, K>  {
+public interface MapMemoizer<I, K> {
 
     /**
      * @param identifier Identifier
@@ -18,10 +18,11 @@ public interface MapMemoizer<I, K>  {
     Map<K, ?> get(I identifier);
 
     /**
-     * Store one map
+     * Store one map.
      *
-     * @param identifier   Identifier
-     * @param value Map
+     * @param identifier Identifier
+     * @param value      Map
+     * @throws IllegalStateException If this instance is {@link #complete()}
      */
     void put(I identifier, Map<?, ?> value);
 
@@ -31,15 +32,14 @@ public interface MapMemoizer<I, K>  {
     int size();
 
     /**
-     * Complete the building of the maps and and throw away working data.  If this MapMemoizer is
-     * subsequently discarded, memory usage and should go down, and we will prohibit further
-     * {@link #put(Object, Map) puts}.
+     * Signals the end of {@link #put(Object, Map) putting} activities.  This instance will throw out
+     * working data and prohibit further {@link #put(Object, Map) puts}.
      *
      * @return Access to stored maps
      */
     Access<I, K> complete();
 
-    interface Access<I, K>  {
+    interface Access<I, K> {
 
         /**
          * @param identifier Identifier

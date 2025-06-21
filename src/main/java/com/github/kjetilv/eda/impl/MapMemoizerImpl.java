@@ -44,9 +44,9 @@ public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Acc
 
     private Map<Hash, Map<K, Object>> canonicalMaps = new ConcurrentHashMap<>();
 
-    private final Map<Hash, Object> canonicalLeaves = new ConcurrentHashMap<>();
+    private Map<Hash, Object> canonicalLeaves = new ConcurrentHashMap<>();
 
-    private final Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
+    private Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
 
     private final Map<I, Map<K, Object>> overflows = new ConcurrentHashMap<>();
 
@@ -155,8 +155,8 @@ public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Acc
             return this;
         }
         this.canonicalMaps = prunedCanonical(this.canonicalMaps, memoized.values());
-        this.canonicalLeaves.clear();
-        this.canonicalKeys.clear();
+        this.canonicalLeaves = null;
+        this.canonicalKeys = null;
         this.complete = true;
         return this;
     }
