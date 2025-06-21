@@ -3,6 +3,12 @@ package com.github.kjetilv.eda.impl;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.chrono.ChronoLocalDate;
+import java.time.chrono.ChronoLocalDateTime;
+import java.time.chrono.ChronoZonedDateTime;
 import java.time.temporal.TemporalAccessor;
 import java.util.Objects;
 import java.util.UUID;
@@ -32,8 +38,13 @@ final class DefaultLeafHasher implements LeafHasher {
             case BigDecimal b -> hashBigDecimal(T.BIG_DECIMAL.tag(hb), b);
             case BigInteger b -> hashBigInteger(T.BIG_INTEGER.tag(hb), b);
             case Number n -> hashNumber(T.NUMBER.tag(hb), n);
-            case UUID uuid -> hashUUID(T.UUID.tag(hb), uuid);
-            case TemporalAccessor a -> hashInstant(T.NUMBER.tag(hb), Instant.from(a));
+            case UUID u -> hashUUID(T.UUID.tag(hb), u);
+            case ChronoLocalDate l -> hashNumber(T.LOCAL_DATE.tag(hb), l.toEpochDay());
+            case ChronoLocalDateTime<?> l -> hashNumber(T.LOCAL_DATE_TIME.tag(hb), l.toEpochSecond(ZoneOffset.UTC));
+            case ChronoZonedDateTime<?> z -> hashNumber(T.ZONED_DATETIME.tag(hb), z.toEpochSecond());
+            case OffsetDateTime o -> hashNumber(T.OFFSET_DATETIME.tag(hb), o.toEpochSecond());
+            case Instant i -> hashInstant(T.INSTANT.tag(hb), i);
+            case TemporalAccessor t -> hashString(T.TEMPORAL.tag(hb), t.toString());
             default -> hashLeaf(leaf, T.OBJECT.tag(hb), anyHash);
         }).get();
     }
@@ -92,6 +103,11 @@ final class DefaultLeafHasher implements LeafHasher {
         NUMBER,
         BOOL,
         OBJECT,
+        LOCAL_DATE,
+        LOCAL_DATE_TIME,
+        ZONED_DATETIME,
+        OFFSET_DATETIME,
+        INSTANT,
         TEMPORAL,
         DOUBLE,
         FLOAT,
