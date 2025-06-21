@@ -25,10 +25,10 @@ final class DefaultLeafHasher implements LeafHasher {
 
     @Override
     public Hash hash(Object leaf) {
-        return hash(newBuilder.get(), leaf, anyHash);
+        return hash(newBuilder.get(), leaf);
     }
 
-    private static Hash hash(HashBuilder<byte[]> hb, Object leaf, ToIntFunction<Object> anyHash) {
+    private Hash hash(HashBuilder<byte[]> hb, Object leaf) {
         return (switch (leaf) {
             case String s -> hashString(T.STRING.tag(hb), s);
             case Boolean b -> hashString(T.BOOL.tag(hb), Boolean.toString(b));
@@ -43,12 +43,16 @@ final class DefaultLeafHasher implements LeafHasher {
             case Year y -> hashNumber(T.YEAR.tag(hb), y.getValue());
             case YearMonth y -> hashNumber(T.YEAR_MONTH.tag(hb), y.getYear() * 12 + y.getMonthValue());
             case Month m -> hashNumber(T.MONTH.tag(hb), m.getValue());
-            case MonthDay m -> hashNumber(T.MONTH.tag(hb), m.getMonthValue() * 12 + m.getDayOfMonth());
+            case MonthDay m -> hashNumber(T.MONTH_DAY.tag(hb), m.getMonthValue() * 12 + m.getDayOfMonth());
             case DayOfWeek d -> hashNumber(T.DAY_OF_WEEK.tag(hb), d.getValue());
             case Instant i -> hashInstant(T.INSTANT.tag(hb), i);
             case TemporalAccessor t -> hashString(T.TEMPORAL.tag(hb), t.toString());
-            default -> hashLeaf(leaf, T.OBJECT.tag(hb), anyHash);
+            default -> hashLeaf(leaf, T.OBJECT.tag(hb));
         }).get();
+    }
+
+    private HashBuilder<?> hashLeaf(Object object, HashBuilder<byte[]> hb) {
+        return hb.hash(Hashes.bytes(anyHash.applyAsInt(object.getClass())));
     }
 
     private static HashBuilder<byte[]> hashNumber(HashBuilder<byte[]> hb, Number n) {
@@ -61,10 +65,6 @@ final class DefaultLeafHasher implements LeafHasher {
             case Byte b -> T.BYTE.tag(hb).hash(typeBytes(b));
             default -> hashString(T.OTHER_NUMERIC.tag(hb), n.toString());
         };
-    }
-
-    private static HashBuilder<?> hashLeaf(Object object, HashBuilder<byte[]> hb, ToIntFunction<Object> hc) {
-        return hb.hash(Hashes.bytes(hc.applyAsInt(object.getClass())));
     }
 
     private static HashBuilder<byte[]> hashString(HashBuilder<byte[]> hb, String string) {
