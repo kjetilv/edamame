@@ -23,14 +23,19 @@ import static java.util.Objects.requireNonNull;
 public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
 
     /**
-     * @param <I> Id type
-     * @param <K> Key type
+     * @param <I>           Id type
+     * @param <K>           Key type
+     * @param keyNormalizer Key normalizer, null is default behaviour
+     * @param leafHasher    Leaf hasher, for testing purposes
      * @return Map memoizer
      */
     @SuppressWarnings("unchecked")
-    public static <I, K> MapMemoizer<I, K> create(KeyNormalizer<K> keyNormalizer, LeafHasher leafHasher) {
+    public static <I, K> MapMemoizer<I, K> create(
+        KeyNormalizer<K> keyNormalizer,
+        LeafHasher leafHasher
+    ) {
         Supplier<HashBuilder<byte[]>> supplier = () ->
-            new DigestiveHashBuilder<>(new Md5ByteDigest());
+            new DigestiveHashBuilder<>(new ByteDigest());
         KeyNormalizer<K> normalizer = keyNormalizer == null
             ? key -> (K) key.toString()
             : keyNormalizer;

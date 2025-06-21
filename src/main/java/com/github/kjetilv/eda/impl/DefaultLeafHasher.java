@@ -9,8 +9,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
-import static com.github.kjetilv.eda.impl.Type.*;
-
 final class DefaultLeafHasher implements LeafHasher {
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
@@ -29,26 +27,26 @@ final class DefaultLeafHasher implements LeafHasher {
 
     private static Hash hash(HashBuilder<byte[]> hb, Object leaf, ToIntFunction<Object> anyHash) {
         return (switch (leaf) {
-            case String s -> hashString(STRING.tag(hb), s);
-            case Boolean b -> hashString(BOOL.tag(hb), Boolean.toString(b));
-            case BigDecimal b -> hashBigDecimal(BIG_DECIMAL.tag(hb), b);
-            case BigInteger b -> hashBigInteger(BIG_INTEGER.tag(hb), b);
-            case Number n -> hashNumber(NUMBER.tag(hb), n);
-            case UUID uuid -> hashUUID(UUID.tag(hb), uuid);
-            case TemporalAccessor a -> hashInstant(NUMBER.tag(hb), Instant.from(a));
-            default -> hashLeaf(leaf, OBJECT.tag(hb), anyHash);
+            case String s -> hashString(T.STRING.tag(hb), s);
+            case Boolean b -> hashString(T.BOOL.tag(hb), Boolean.toString(b));
+            case BigDecimal b -> hashBigDecimal(T.BIG_DECIMAL.tag(hb), b);
+            case BigInteger b -> hashBigInteger(T.BIG_INTEGER.tag(hb), b);
+            case Number n -> hashNumber(T.NUMBER.tag(hb), n);
+            case UUID uuid -> hashUUID(T.UUID.tag(hb), uuid);
+            case TemporalAccessor a -> hashInstant(T.NUMBER.tag(hb), Instant.from(a));
+            default -> hashLeaf(leaf, T.OBJECT.tag(hb), anyHash);
         }).get();
     }
 
     private static HashBuilder<byte[]> hashNumber(HashBuilder<byte[]> hb, Number n) {
         return switch (n) {
-            case Double d -> DOUBLE.tag(hb).hash(Hashes.bytes(d));
-            case Float f -> FLOAT.tag(hb).hash(Hashes.bytes(f));
-            case Long l -> LONG.tag(hb).hash(Hashes.bytes(l));
-            case Integer i -> INT.tag(hb).hash(Hashes.bytes(i));
-            case Short s -> SHORT.tag(hb).hash(Hashes.bytes(s));
-            case Byte b -> BYTE.tag(hb).hash(typeBytes(b));
-            default -> hashString(OTHER_NUMERIC.tag(hb), n.toString());
+            case Double d -> T.DOUBLE.tag(hb).hash(Hashes.bytes(d));
+            case Float f -> T.FLOAT.tag(hb).hash(Hashes.bytes(f));
+            case Long l -> T.LONG.tag(hb).hash(Hashes.bytes(l));
+            case Integer i -> T.INT.tag(hb).hash(Hashes.bytes(i));
+            case Short s -> T.SHORT.tag(hb).hash(Hashes.bytes(s));
+            case Byte b -> T.BYTE.tag(hb).hash(typeBytes(b));
+            default -> hashString(T.OTHER_NUMERIC.tag(hb), n.toString());
         };
     }
 
@@ -83,5 +81,30 @@ final class DefaultLeafHasher implements LeafHasher {
 
     private static byte[] typeBytes(int i) {
         return new byte[] {(byte) i};
+    }
+
+    private enum T {
+
+        STRING,
+        BIG_DECIMAL,
+        BIG_INTEGER,
+        UUID,
+        NUMBER,
+        BOOL,
+        OBJECT,
+        TEMPORAL,
+        DOUBLE,
+        FLOAT,
+        LONG,
+        INT,
+        SHORT,
+        BYTE,
+        OTHER_NUMERIC;
+
+        private final byte[] bytes = new byte[] {(byte) ordinal()};
+
+        HashBuilder<byte[]> tag(HashBuilder<byte[]> hb) {
+            return hb.hash(bytes);
+        }
     }
 }

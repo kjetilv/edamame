@@ -11,7 +11,7 @@ import java.util.stream.Stream;
  *
  * @param <T>
  */
-public interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Supplier<Hash> {
+interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Supplier<Hash> {
 
     @Override
     default void accept(T t) {

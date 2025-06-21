@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MapMemoizersTest {
 
     static HashBuilder<byte[]> md5HashBuilder() {
-        return new DigestiveHashBuilder<>(new Md5ByteDigest());
+        return new DigestiveHashBuilder<>(new ByteDigest());
     }
 
     @Test
@@ -422,7 +422,7 @@ class MapMemoizersTest {
     }
 
     private static Hash randomHash() {
-        return new DigestiveHashBuilder<byte[]>(new Md5ByteDigest())
+        return new DigestiveHashBuilder<byte[]>(new ByteDigest())
             .<String>map(String::getBytes)
             .hash(UUID.randomUUID().toString()).get();
     }

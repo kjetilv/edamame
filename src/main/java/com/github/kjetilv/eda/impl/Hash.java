@@ -14,10 +14,6 @@ public interface Hash extends Comparable<Hash> {
 
     int DIGEST_LEN = 22;
 
-    static Hash of(long l0, long l1) {
-        return new DefaultHash(l0, l1);
-    }
-
     /**
      * @return Unique 43-char string representation
      */
@@ -35,10 +31,6 @@ public interface Hash extends Comparable<Hash> {
     @Override
     default int compareTo(Hash o) {
         return Arrays.compare(ls(), o.ls());
-    }
-
-    default byte byteAt(int i) {
-        return bytes()[i];
     }
 
     /**

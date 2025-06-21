@@ -1,5 +1,6 @@
 package com.github.kjetilv.eda.impl;
 
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -15,16 +16,13 @@ final class DigestiveHashBuilder<T> implements HashBuilder<T> {
 
     @SuppressWarnings("unchecked")
     private DigestiveHashBuilder(ByteDigest byteDigest, Function<T, Stream<byte[]>> toBytes) {
-        this.byteDigest = byteDigest;
+        this.byteDigest = Objects.requireNonNull(byteDigest, "byteDigest");
         this.toBytes = toBytes == null ? (Function<T, Stream<byte[]>>) IDENTITY : toBytes;
     }
 
     @Override
     public HashBuilder<T> hash(T t) {
-        if (t != null) {
-            toBytes.apply(t)
-                .forEach(byteDigest);
-        }
+        toBytes.apply(t).forEach(byteDigest);
         return this;
     }
 
