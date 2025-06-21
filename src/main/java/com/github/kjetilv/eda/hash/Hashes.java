@@ -1,19 +1,14 @@
 package com.github.kjetilv.eda.hash;
 
 import java.util.Base64;
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.util.Objects.requireNonNull;
 
-@SuppressWarnings("unused")
 public final class Hashes {
-
-    public static final Hash BLANK = of(0L, 0L);
 
     public static Hash random() {
         UUID u1 = UUID.randomUUID();
@@ -21,12 +16,6 @@ public final class Hashes {
             u1.getMostSignificantBits(),
             u1.getLeastSignificantBits()
         );
-    }
-
-    public static String toShortHashString(List<Hash> hashes) {
-        return hashes.stream()
-            .map(Hash::toShortString)
-            .collect(Collectors.joining("—"));
     }
 
     public static String digest(Hash hash) {
@@ -50,12 +39,6 @@ public final class Hashes {
 
     public static Hash of(long l0, long l1) {
         return new DefaultHash(l0, l1);
-    }
-
-    public static Hash ofNullable(long l0, long l1) {
-        return l0 == 0 && l1 == 0
-            ? BLANK
-            : new DefaultHash(l0, l1);
     }
 
     public static byte[] bytes(Hash hash) {
@@ -131,24 +114,6 @@ public final class Hashes {
         byte[] bytes = new byte[8];
         longToBytes(l, 0, bytes);
         return bytes;
-    }
-
-    public static int toInt(byte[] bs) {
-        return (bs[0] & 0xFF) << 24 |
-               (bs[1] & 0xFF) << 16 |
-               (bs[2] & 0xFF) << 8 |
-               bs[3] & 0xFF;
-    }
-
-    public static long toLong(byte[] bs) {
-        return (bs[0] & 0xFFL) << 56 |
-               (bs[1] & 0xFFL) << 48 |
-               (bs[2] & 0xFFL) << 40 |
-               (bs[3] & 0xFFL) << 32 |
-               (bs[4] & 0xFFL) << 24 |
-               (bs[5] & 0xFFL) << 16 |
-               (bs[6] & 0xFFL) << 8 |
-               (long) bs[7] & 0xFFL;
     }
 
     public static byte[] bytes(long l1, long l2) {

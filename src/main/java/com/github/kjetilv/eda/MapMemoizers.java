@@ -8,9 +8,6 @@ import com.github.kjetilv.eda.impl.DefaultLeafHasher;
 
 import java.util.function.Supplier;
 
-import static com.github.kjetilv.eda.Option.USE_SYSTEM_HC;
-import static com.github.kjetilv.eda.Option.is;
-
 /**
  * Factory methods for {@link MapMemoizer}s.
  */
@@ -19,91 +16,81 @@ public final class MapMemoizers {
     /**
      * String-keyed maps.
      *
-     * @param options Options
-     * @param <I>     Type of id's
+     * @param <I> Type of id's
      * @return {@link MapMemoizer} for String-keyed maps
      */
-    public static <I> MapMemoizer<I, String> create(Option... options) {
-        return create(null, null, null, options);
+    public static <I> MapMemoizer<I, String> create() {
+        return create(null, null, null);
     }
 
     /**
      * @param newBuilder Provider for new {@link HashBuilder hash builders}
-     * @param options    Options
      * @param <I>        Type of id's
      * @return {@link MapMemoizer} for String-keyed maps
      */
     public static <I> MapMemoizer<I, String> create(
-        Supplier<HashBuilder<byte[]>> newBuilder,
-        Option... options
+        Supplier<HashBuilder<byte[]>> newBuilder
     ) {
-        return create(newBuilder, null, null, options);
+        return create(newBuilder, null, null);
     }
 
     /**
      * This method allows control over stored keys. Stored maps will be normalized to use {@link K}'s as map keys
-     * on all levels. The {@code keyNormalizer} argument provides a callback that will produce (preferably) canonical {@link K}
-     * instances, from the keys in incoming maps. Since {@link MapMemoizer} accepts {@code Map<?, ?>} and
-     * this function needs to accept {@code ?} (any input) so it must handle whatever maps are thrown at it later.
+     * on all levels. The {@code keyNormalizer} argument provides a callback that will produce (preferably)
+     * canonical {@link K} instances, from the keys in incoming maps. Since {@link MapMemoizer} accepts
+     * {@code Map<?, ?>} and this function needs to accept {@code ?} (any input) so it must handle
+     * whatever maps are thrown at it later.
      *
      * @param <I>           Id type
      * @param <K>           Key type
      * @param keyNormalizer Canonical key provider
-     * @param options       Options
      * @return Map memoizer
      */
     public static <I, K> MapMemoizer<I, K> create(
-        KeyNormalizer<K> keyNormalizer,
-        Option... options
+        KeyNormalizer<K> keyNormalizer
     ) {
-        return create(null, keyNormalizer, null, options);
+        return create(null, keyNormalizer, null);
     }
 
     /**
      * @param leafHasher Hasher
-     * @param options    Options
      * @return Map memoizer
-     * @see #create(KeyNormalizer, Option...)
-     * @see #create(Supplier, Option...)
+     * @see #create(KeyNormalizer)
+     * @see #create(Supplier)
      */
     public static <I, K> MapMemoizer<I, K> create(
-        LeafHasher leafHasher,
-        Option... options
+        LeafHasher leafHasher
     ) {
-        return create(null, null, leafHasher, options);
+        return create(null, null, leafHasher);
     }
 
     /**
-     * @param keyNormalizer Key normalizer, see {@link #create(KeyNormalizer, Option...)}
+     * @param keyNormalizer Key normalizer, see {@link #create(KeyNormalizer)}
      * @param leafHasher    Hasher
-     * @param options       Options
      * @return Map memoizer
-     * @see #create(KeyNormalizer, Option...)
-     * @see #create(Supplier, Option...)
+     * @see #create(KeyNormalizer)
+     * @see #create(Supplier)
      */
     public static <I, K> MapMemoizer<I, K> create(
         KeyNormalizer<K> keyNormalizer,
-        LeafHasher leafHasher,
-        Option... options
+        LeafHasher leafHasher
     ) {
-        return create(null, keyNormalizer, leafHasher, options);
+        return create(null, keyNormalizer, leafHasher);
     }
 
     /**
-     * @param newBuilder    Provider for new {@link HashBuilder hash builders}, see {@link #create(Supplier, Option...)}
-     * @param keyNormalizer Key normalizer, see {@link #create(KeyNormalizer, Option...)}
-     * @param options       Options
+     * @param newBuilder    Provider for new {@link HashBuilder hash builders}, see {@link #create(Supplier)}
+     * @param keyNormalizer Key normalizer, see {@link #create(KeyNormalizer)}
      * @param <I>           Id type
      * @param <K>           Key type
      * @return Map memoizer
-     * @see #create(KeyNormalizer, Option...)
-     * @see #create(Supplier, Option...)
+     * @see #create(KeyNormalizer)
+     * @see #create(Supplier)
      */
     public static <I, K> MapMemoizer<I, K> create(
         Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
-        LeafHasher leafHasher,
-        Option... options
+        LeafHasher leafHasher
     ) {
         return new CanonicalMapBuilder<>(
             newBuilder == null
@@ -113,24 +100,11 @@ public final class MapMemoizers {
                 ? KeyNormalizer.keyToString()
                 : keyNormalizer,
             leafHasher == null
-                ? defaultLeafHasher(newBuilder, options)
-                : leafHasher,
-            options
+                ? new DefaultLeafHasher(newBuilder, Object::hashCode)
+                : leafHasher
         );
     }
 
     private MapMemoizers() {
-    }
-
-    private static DefaultLeafHasher defaultLeafHasher(
-        Supplier<HashBuilder<byte[]>> newBuilder,
-        Option[] options
-    ) {
-        return new DefaultLeafHasher(
-            newBuilder,
-            is(USE_SYSTEM_HC, options)
-                ? System::identityHashCode
-                : Object::hashCode
-        );
     }
 }

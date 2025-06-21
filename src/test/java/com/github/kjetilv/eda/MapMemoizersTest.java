@@ -5,12 +5,6 @@ import com.github.kjetilv.eda.hash.Hashes;
 import com.github.kjetilv.eda.hash.LeafHasher;
 import com.github.kjetilv.eda.impl.DefaultLeafHasher;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.provider.ArgumentsSource;
-import org.junit.jupiter.params.support.ParameterDeclarations;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -20,9 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
-import static com.github.kjetilv.eda.Option.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MapMemoizersTest {
@@ -74,15 +66,14 @@ class MapMemoizersTest {
 //        assertSame(bi, access.get(43L).get("zot2"));
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(OptionsProvider.class)
-    void shouldHandleCollisions(Option[] options) {
+    @Test
+    void shouldHandleCollisions() {
         Hash collider = randomHash();
         LeafHasher leafHasher = leaf ->
             leaf.equals("3") || leaf.equals("7")
                 ? collider
                 : new DefaultLeafHasher().hash(leaf);
-        MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher, options);
+        MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher);
 
         for (int i = 0; i < 10; i++) {
             cache.put((long) i, Map.of("foo", String.valueOf(i)));
@@ -94,11 +85,10 @@ class MapMemoizersTest {
         }
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(OptionsProvider.class)
-    void shouldRespectCanonicalKeys(Option[] options) {
+    @Test
+    void shouldRespectCanonicalKeys() {
         KeyNormalizer<CaKe> caKeKeyNormalizer = s -> CaKe.get(s.toString());
-        MapMemoizer<Long, CaKe> cache = MapMemoizers.create(caKeKeyNormalizer, options);
+        MapMemoizer<Long, CaKe> cache = MapMemoizers.create(caKeKeyNormalizer);
 
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
@@ -259,34 +249,9 @@ class MapMemoizersTest {
         );
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(CacheLeavesProvider.class)
-    void shouldKeepBlankData(Option[] option) {
-        MapMemoizer<Long, String> cache = MapMemoizers.create(option);
-
-        cache.put(
-            42L,
-            Map.of(
-                "foo", "bar",
-                "zot", Collections.emptyList(),
-                "zip", Collections.emptyMap()
-            )
-        );
-        MapMemoizer.Access<Long, String> access = cache.complete();
-        assertEquals(
-            Map.of(
-                "foo", "bar",
-                "zot", Collections.emptyList(),
-                "zip", Collections.emptyMap()
-            ),
-            access.get(42L)
-        );
-    }
-
-    @ParameterizedTest
-    @ArgumentsSource(OptionsProvider.class)
-    void shouldIgnoreKeyOrder(Option[] options) {
-        MapMemoizer<Long, String> cache = MapMemoizers.create(options);
+    @Test
+    void shouldIgnoreKeyOrder() {
+        MapMemoizer<Long, String> cache = MapMemoizers.create();
 
         cache.put(
             42L,
@@ -304,10 +269,9 @@ class MapMemoizersTest {
         assertSame(canon42, canon43);
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(OptionsProvider.class)
-    void shouldPreserveListOrder(Option[] options) {
-        MapMemoizer<Long, String> cache = MapMemoizers.create(options);
+    @Test
+    void shouldPreserveListOrder() {
+        MapMemoizer<Long, String> cache = MapMemoizers.create();
 
         cache.put(
             42L,
@@ -330,10 +294,9 @@ class MapMemoizersTest {
         assertNotEquals(canon42, canon43);
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(OptionsProvider.class)
-    void shouldPreserveIdentities(Option[] options) {
-        MapMemoizer<Long, String> cache = MapMemoizers.create(options);
+    @Test
+    void shouldPreserveIdentities() {
+        MapMemoizer<Long, String> cache = MapMemoizers.create();
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
         Map<String, Object> in43 = Map.of(
@@ -498,47 +461,5 @@ class MapMemoizersTest {
     @SuppressWarnings({"unchecked", "SameParameterValue"})
     private static <K> Object getDeep(Map<K, ?> stringMap44, K one, K two) {
         return ((Map<K, ?>) stringMap44.get(one)).get(two);
-    }
-
-    public static class OptionsProvider implements ArgumentsProvider {
-        @Override
-        public Stream<? extends Arguments> provideArguments(
-            ParameterDeclarations parameters,
-            ExtensionContext context
-        ) {
-            return Stream.of(
-                Arguments.of((Object) new Option[] {}),
-                Arguments.of((Object) new Option[] {OMIT_LEAVES}),
-                Arguments.of((Object) new Option[] {KEEP_BLANKS}),
-                Arguments.of((Object) new Option[] {KEEP_BLANKS, OMIT_LEAVES}),
-                Arguments.of((Object) new Option[] {OMIT_GC}),
-                Arguments.of((Object) new Option[] {OMIT_LEAVES, OMIT_GC}),
-                Arguments.of((Object) new Option[] {KEEP_BLANKS, OMIT_GC}),
-                Arguments.of((Object) new Option[] {KEEP_BLANKS, OMIT_LEAVES, OMIT_GC}),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, }),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, OMIT_LEAVES}),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS}),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS, OMIT_LEAVES}),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, OMIT_GC}),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, OMIT_LEAVES, OMIT_GC}),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS, OMIT_GC}),
-                Arguments.of((Object) new Option[] {FORK_COMPLETE, KEEP_BLANKS, OMIT_LEAVES, OMIT_GC})
-            );
-        }
-    }
-
-    public static class CacheLeavesProvider implements ArgumentsProvider {
-        @Override
-        public Stream<? extends Arguments> provideArguments(
-            ParameterDeclarations parameters,
-            ExtensionContext context
-        ) {
-            return Stream.of(
-                Arguments.of((Object) new Option[] {KEEP_BLANKS}),
-                Arguments.of((Object) new Option[] {KEEP_BLANKS, OMIT_LEAVES}),
-                Arguments.of((Object) new Option[] {OMIT_GC, KEEP_BLANKS}),
-                Arguments.of((Object) new Option[] {OMIT_GC, KEEP_BLANKS, OMIT_LEAVES})
-            );
-        }
     }
 }
