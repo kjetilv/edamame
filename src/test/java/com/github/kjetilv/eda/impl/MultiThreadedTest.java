@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static com.github.kjetilv.eda.impl.MapMemoizerImpl.create;
+import static com.github.kjetilv.eda.impl.MapMemoizerFactory.create;
 
 public class MultiThreadedTest {
 

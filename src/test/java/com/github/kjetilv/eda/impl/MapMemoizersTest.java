@@ -13,7 +13,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.github.kjetilv.eda.impl.MapMemoizerImpl.create;
+import static com.github.kjetilv.eda.impl.MapMemoizerFactory.create;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MapMemoizersTest {

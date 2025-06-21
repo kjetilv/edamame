@@ -5,7 +5,6 @@ import com.github.kjetilv.eda.MapMemoizer;
 
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -20,40 +19,17 @@ import static java.util.Objects.requireNonNull;
  * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
-public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
+class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
 
-    /**
-     * @param <I>           Id type
-     * @param <K>           Key type
-     * @param keyNormalizer Key normalizer, null is default behaviour
-     * @param leafHasher    Leaf hasher, for testing purposes
-     * @return Map memoizer
-     */
-    @SuppressWarnings("unchecked")
-    public static <I, K> MapMemoizer<I, K> create(
-        KeyNormalizer<K> keyNormalizer,
-        LeafHasher leafHasher
-    ) {
-        Supplier<HashBuilder<byte[]>> supplier = () ->
-            new DigestiveHashBuilder<>(new ByteDigest());
-        KeyNormalizer<K> normalizer = keyNormalizer == null
-            ? key -> (K) key.toString()
-            : keyNormalizer;
-        LeafHasher leaves = leafHasher == null
-            ? new DefaultLeafHasher(supplier, Object::hashCode)
-            : leafHasher;
-        return new MapMemoizerImpl<>(supplier, normalizer, leaves);
-    }
+    private final Map<I, Hash> memoized = new HashMap<>();
 
-    private final Map<I, Hash> memoized = new ConcurrentHashMap<>();
+    private final Map<I, Map<K, Object>> overflows = new HashMap<>();
 
-    private Map<Hash, Map<K, Object>> canonicalMaps = new ConcurrentHashMap<>();
+    private Map<Hash, Map<K, Object>> canonicalMaps = new HashMap<>();
 
-    private Map<Hash, Object> canonicalLeaves = new ConcurrentHashMap<>();
+    private Map<Hash, Object> canonicalLeaves = new HashMap<>();
 
-    private Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
-
-    private final Map<I, Map<K, Object>> overflows = new ConcurrentHashMap<>();
+    private Map<Object, K> canonicalKeys = new HashMap<>();
 
     private final Lock lock = new ReentrantLock();
 
@@ -72,7 +48,7 @@ public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Acc
      * @param keyNormalizer Key normalizer, not null
      * @param leafHasher    Hasher, not null
      */
-    public MapMemoizerImpl(
+    MapMemoizerImpl(
         Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
         LeafHasher leafHasher
@@ -159,7 +135,9 @@ public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Acc
         if (complete) {
             return this;
         }
+        // Keep maps that are memoized
         this.canonicalMaps = prunedCanonical(this.canonicalMaps, memoized.values());
+        // Free memory used for working data
         this.canonicalLeaves = null;
         this.canonicalKeys = null;
         this.complete = true;
