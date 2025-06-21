@@ -32,10 +32,6 @@ public interface Hash extends Comparable<Hash> {
         return Hashes.bytes(this);
     }
 
-    default String toShortString() {
-        return LPAR + digest().substring(0, 6) + RPAR;
-    }
-
     @Override
     default int compareTo(Hash o) {
         return Arrays.compare(ls(), o.ls());

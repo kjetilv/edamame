@@ -1,16 +1,19 @@
-package com.github.kjetilv.eda;
+package com.github.kjetilv.eda.impl;
 
+import com.github.kjetilv.eda.MapMemoizer;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static com.github.kjetilv.eda.impl.MapMemoizerImpl.create;
+
 public class MultiThreadedTest {
 
     @Test
     void test() {
-        MapMemoizer<Object, CaKe> memoizer = MapMemoizers.create((KeyNormalizer<CaKe>) key ->
-            CaKe.get(key.toString()));
+        MapMemoizer<Object, CaKe> memoizer = create(key -> CaKe.get(key.toString()), null
+        );
 
         CompletableFuture<Void> voider = CompletableFuture.runAsync(() -> {
             for (int i = 0; i < 100; i++) {

@@ -32,7 +32,7 @@ Currently, only Java `Map<?,?>` and `Iterable<?>` types are supported. Jackson's
 
 Leaf nodes should be primitives – strings, numbers, BigDecimals, BigIntegers, booleans – but they can really be
 anything that implements equals/hashCode. If you put your rich domain model POJO in there, edamame will use its
-hashCode.  (Optionally the system identity hashCode, if it turns out equals/hashCode wasn't supported after all.)
+hashCode. 
 
 ### Immutability
 

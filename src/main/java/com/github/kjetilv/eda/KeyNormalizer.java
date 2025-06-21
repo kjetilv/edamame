@@ -2,26 +2,23 @@ package com.github.kjetilv.eda;
 
 /**
  * Most of the time, maps will have {@link String} keys, or at least some key type which has
- * a natural projection onto {@link String}, typically via {@link Object#toString()}. In these
- * cases, {@link #keyToString()} will suffice and is also the default.
+ * a natural projection onto {@link String}. In this case, use
+ * {@link MapMemoizers#create() the default memoizer}.
  * <p>
- * In other cases, one might want e.g. a custom single-field record type (typically to reduce
- * stringly typed code), or an enum, etc.  In such cases, implement a {@link KeyNormalizer}
- * which {@link #toKey(Object) toKey's} the keys of input maps and normalizes them to an
- * instance of that key type.
+ * Oftentimes, to avoid stringly typed code one might want to use e.g. a single-value
+ * {@link Record} or an {@link Enum}. In such cases, {@link KeyNormalizer#toKey(Object) implement} and
+ * {@link MapMemoizers#create(KeyNormalizer) plug in this interface}
+ * to produce instances of that key type.
  *
  * @param <K>
+ * @see MapMemoizers#create(KeyNormalizer)
  */
 @FunctionalInterface
 public interface KeyNormalizer<K> {
 
-    @SuppressWarnings("unchecked")
-    static <K> KeyNormalizer<K> keyToString() {
-        return key -> (K) key.toString();
-    }
-
     /**
-     * Affects how maps are hashed wrt. their keys
+     * Affects how maps are hashed wrt. their keys.  Default implementation is to get the
+     * bytes of its {@link Object#toString()}.
      *
      * @param key Key
      * @return byte array for hashing
@@ -31,8 +28,8 @@ public interface KeyNormalizer<K> {
     }
 
     /**
-     * Normalises a map's key to a K instance.  The returned value will be caonicalized so that the next object with
-     * the same key gets the same {@code K}.
+     * Normalises a map's key to a K instance.  The returned value will be canonicalized
+     * so that the same key gets the same {@code K} instance.
      *
      * @param key Key
      * @return A K instance

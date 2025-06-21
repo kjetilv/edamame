@@ -4,26 +4,22 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 import static com.github.kjetilv.eda.impl.Type.*;
-import static com.github.kjetilv.eda.impl.Type.DOUBLE;
 
-public final class DefaultLeafHasher implements LeafHasher {
+final class DefaultLeafHasher implements LeafHasher {
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
 
     private final ToIntFunction<Object> anyHash;
 
-    public DefaultLeafHasher() {
-        this(null, null);
-    }
-
-    public DefaultLeafHasher(Supplier<HashBuilder<byte[]>> newBuilder, ToIntFunction<Object> anyHash) {
-        this.newBuilder = newBuilder == null ? Hashes::md5HashBuilder : newBuilder;
-        this.anyHash = anyHash == null ? Object::hashCode : anyHash;
+    DefaultLeafHasher(Supplier<HashBuilder<byte[]>> newBuilder, ToIntFunction<Object> anyHash) {
+        this.newBuilder = Objects.requireNonNull(newBuilder, "newBuilder");
+        this.anyHash = Objects.requireNonNull(anyHash, "anyHash");
     }
 
     @Override

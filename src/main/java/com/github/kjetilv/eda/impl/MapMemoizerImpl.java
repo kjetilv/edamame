@@ -20,26 +20,24 @@ import static java.util.Objects.requireNonNull;
  * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
-public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
+public class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
 
     /**
      * @param <I> Id type
      * @param <K> Key type
      * @return Map memoizer
      */
-    public static <I, K> MapMemoizer<I, K> create(
-        LeafHasher leafHasher,
-        KeyNormalizer<K> keyNormalizer
-    ) {
-        return new CanonicalMapBuilder<>(
-            Hashes::md5HashBuilder,
-            keyNormalizer == null
-                ? KeyNormalizer.keyToString()
-                : keyNormalizer,
-            leafHasher == null
-                ? new DefaultLeafHasher(Hashes::md5HashBuilder, Object::hashCode)
-                : leafHasher
-        );
+    @SuppressWarnings("unchecked")
+    public static <I, K> MapMemoizer<I, K> create(KeyNormalizer<K> keyNormalizer, LeafHasher leafHasher) {
+        Supplier<HashBuilder<byte[]>> supplier = () ->
+            new DigestiveHashBuilder<>(new Md5ByteDigest());
+        KeyNormalizer<K> normalizer = keyNormalizer == null
+            ? key -> (K) key.toString()
+            : keyNormalizer;
+        LeafHasher leaves = leafHasher == null
+            ? new DefaultLeafHasher(supplier, Object::hashCode)
+            : leafHasher;
+        return new MapMemoizerImpl<>(supplier, normalizer, leaves);
     }
 
     private final Map<I, Hash> memoized = new ConcurrentHashMap<>();
@@ -69,7 +67,7 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
      * @param keyNormalizer Key normalizer, not null
      * @param leafHasher    Hasher, not null
      */
-    public CanonicalMapBuilder(
+    public MapMemoizerImpl(
         Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
         LeafHasher leafHasher
@@ -186,7 +184,9 @@ public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer
         return switch (object) {
             case Map<?, ?> map -> hashedMap((Map<K, Object>) map);
             case Iterable<?> iterable -> hashedNodes(iterable);
-            default -> object.getClass().isArray() ? hashedNodes(iterable(object)) : hashedLeaf(object);
+            default -> object.getClass().isArray()
+                ? hashedNodes(iterable(object))
+                : hashedLeaf(object);
         };
     }
 

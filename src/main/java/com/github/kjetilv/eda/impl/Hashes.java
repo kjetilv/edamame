@@ -2,8 +2,6 @@ package com.github.kjetilv.eda.impl;
 
 import java.util.Base64;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.util.Objects.requireNonNull;
@@ -123,10 +121,6 @@ public final class Hashes {
         return bytes;
     }
 
-    public static HashBuilder<byte[]> md5HashBuilder() {
-        return new DigestiveHashBuilder<>(new Md5ByteDigest(), IDENTITY);
-    }
-
     private Hashes() {
     }
 
@@ -145,8 +139,6 @@ public final class Hashes {
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
     private static final Base64.Decoder DECODER = Base64.getDecoder();
-
-    private static final Function<byte[], Stream<byte[]>> IDENTITY = Stream::of;
 
     @SuppressWarnings("SameParameterValue")
     private static void shortToBytes(short s, int index, byte[] bytes) {

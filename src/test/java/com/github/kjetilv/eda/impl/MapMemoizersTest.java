@@ -1,6 +1,7 @@
-package com.github.kjetilv.eda;
+package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.impl.*;
+import com.github.kjetilv.eda.KeyNormalizer;
+import com.github.kjetilv.eda.MapMemoizer;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
@@ -12,9 +13,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.github.kjetilv.eda.impl.MapMemoizerImpl.create;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MapMemoizersTest {
+
+    static HashBuilder<byte[]> md5HashBuilder() {
+        return new DigestiveHashBuilder<>(new Md5ByteDigest());
+    }
 
     @Test
     void shouldHandleLeafCollisions() {
@@ -22,9 +28,9 @@ class MapMemoizersTest {
         Object bi = new BigInteger("424242");
         LeafHasher leafHasher = collidingLeafHasher();
 
-        MapMemoizer<Long, String> cache = CanonicalMapBuilder.create(leafHasher, null);
+        MapMemoizer<Long, String> memoizer = create(null, leafHasher);
 
-        cache.put(
+        memoizer.put(
             42L, Map.of(
                 "zot2", bd,
                 "zot1", bi
@@ -32,13 +38,13 @@ class MapMemoizersTest {
         );
         BigDecimal bdCopy = new BigDecimal("123.234");
         BigInteger biCopy = new BigInteger("424242");
-        cache.put(
+        memoizer.put(
             43L, Map.of(
                 "zot2", bdCopy,
                 "zot1", biCopy
             )
         );
-        MapMemoizer.Access<Long, String> access = cache.complete();
+        MapMemoizer.Access<Long, String> access = memoizer.complete();
 
         Map<String, ?> map42 = access.get(42L);
         Map<String, ?> map43 = access.get(43L);
@@ -69,8 +75,11 @@ class MapMemoizersTest {
         LeafHasher leafHasher = leaf ->
             leaf.equals("3") || leaf.equals("7")
                 ? collider
-                : new DefaultLeafHasher().hash(leaf);
-        MapMemoizer<Long, String> cache = MapMemoizers.create();
+                : new DefaultLeafHasher(
+                    MapMemoizersTest::md5HashBuilder,
+                    Object::hashCode
+                ).hash(leaf);
+        MapMemoizer<Long, String> cache = create(null, leafHasher);
 
         for (int i = 0; i < 10; i++) {
             cache.put((long) i, Map.of("foo", String.valueOf(i)));
@@ -85,7 +94,7 @@ class MapMemoizersTest {
     @Test
     void shouldRespectCanonicalKeys() {
         KeyNormalizer<CaKe> caKeKeyNormalizer = s -> CaKe.get(s.toString());
-        MapMemoizer<Long, CaKe> cache = MapMemoizers.create(caKeKeyNormalizer);
+        MapMemoizer<Long, CaKe> cache = create(caKeKeyNormalizer, null);
 
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
@@ -178,7 +187,7 @@ class MapMemoizersTest {
 
     @Test
     void shouldStripBlankData() {
-        MapMemoizer<Long, String> cache = MapMemoizers.create();
+        MapMemoizer<Long, String> cache = create(null, null);
 
         cache.put(
             42L,
@@ -211,7 +220,7 @@ class MapMemoizersTest {
     @Test
     void shouldStringify() {
         KeyNormalizer<String> stringKeyNormalizer = s -> s.toString().intern();
-        MapMemoizer<Long, String> cache = MapMemoizers.create(stringKeyNormalizer);
+        MapMemoizer<Long, String> cache = create(stringKeyNormalizer, null);
 
         cache.put(
             42L,
@@ -248,7 +257,7 @@ class MapMemoizersTest {
 
     @Test
     void shouldIgnoreKeyOrder() {
-        MapMemoizer<Long, String> cache = MapMemoizers.create();
+        MapMemoizer<Long, String> cache = create(null, null);
 
         cache.put(
             42L,
@@ -268,7 +277,7 @@ class MapMemoizersTest {
 
     @Test
     void shouldPreserveListOrder() {
-        MapMemoizer<Long, String> cache = MapMemoizers.create();
+        MapMemoizer<Long, String> cache = create(null, null);
 
         cache.put(
             42L,
@@ -293,7 +302,7 @@ class MapMemoizersTest {
 
     @Test
     void shouldPreserveIdentities() {
-        MapMemoizer<Long, String> cache = MapMemoizers.create();
+        MapMemoizer<Long, String> cache = create(null, null);
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
         Map<String, Object> in43 = Map.of(
@@ -381,7 +390,7 @@ class MapMemoizersTest {
 
     @Test
     void shouldCanonicalizeLeaves() {
-        MapMemoizer<Long, String> cache = MapMemoizers.create();
+        MapMemoizer<Long, String> cache = create(null, null);
 
         BigDecimal bd = new BigDecimal("123.234");
         BigInteger bi = new BigInteger("424242");
@@ -413,7 +422,7 @@ class MapMemoizersTest {
     }
 
     private static Hash randomHash() {
-        return Hashes.md5HashBuilder()
+        return new DigestiveHashBuilder<byte[]>(new Md5ByteDigest())
             .<String>map(String::getBytes)
             .hash(UUID.randomUUID().toString()).get();
     }

@@ -1,6 +1,6 @@
 package com.github.kjetilv.eda;
 
-import com.github.kjetilv.eda.impl.CanonicalMapBuilder;
+import com.github.kjetilv.eda.impl.MapMemoizerImpl;
 
 /**
  * Factory methods for {@link MapMemoizer}s.
@@ -15,7 +15,7 @@ public final class MapMemoizers {
      * @return {@link MapMemoizer} for String-keyed maps
      */
     public static <I> MapMemoizer<I, String> create() {
-        return CanonicalMapBuilder.create(null, null);
+        return create(null);
     }
 
     /**
@@ -32,7 +32,7 @@ public final class MapMemoizers {
      * @return Map memoizer
      */
     public static <I, K> MapMemoizer<I, K> create(KeyNormalizer<K> keyNormalizer) {
-        return CanonicalMapBuilder.create(null, keyNormalizer);
+        return MapMemoizerImpl.create(keyNormalizer, null);
     }
 
     private MapMemoizers() {
