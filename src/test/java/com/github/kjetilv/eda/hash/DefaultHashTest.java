@@ -1,5 +1,7 @@
 package com.github.kjetilv.eda.hash;
 
+import com.github.kjetilv.eda.impl.Hash;
+import com.github.kjetilv.eda.impl.Hashes;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

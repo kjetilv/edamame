@@ -1,9 +1,6 @@
 package com.github.kjetilv.eda;
 
-import com.github.kjetilv.eda.hash.Hash;
-import com.github.kjetilv.eda.hash.Hashes;
-import com.github.kjetilv.eda.hash.LeafHasher;
-import com.github.kjetilv.eda.impl.DefaultLeafHasher;
+import com.github.kjetilv.eda.impl.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
@@ -25,7 +22,7 @@ class MapMemoizersTest {
         Object bi = new BigInteger("424242");
         LeafHasher leafHasher = collidingLeafHasher();
 
-        MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher);
+        MapMemoizer<Long, String> cache = CanonicalMapBuilder.create(leafHasher, null);
 
         cache.put(
             42L, Map.of(
@@ -73,7 +70,7 @@ class MapMemoizersTest {
             leaf.equals("3") || leaf.equals("7")
                 ? collider
                 : new DefaultLeafHasher().hash(leaf);
-        MapMemoizer<Long, String> cache = MapMemoizers.create(leafHasher);
+        MapMemoizer<Long, String> cache = MapMemoizers.create();
 
         for (int i = 0; i < 10; i++) {
             cache.put((long) i, Map.of("foo", String.valueOf(i)));

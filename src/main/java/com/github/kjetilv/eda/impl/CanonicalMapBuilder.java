@@ -2,10 +2,6 @@ package com.github.kjetilv.eda.impl;
 
 import com.github.kjetilv.eda.KeyNormalizer;
 import com.github.kjetilv.eda.MapMemoizer;
-import com.github.kjetilv.eda.hash.Hash;
-import com.github.kjetilv.eda.hash.HashBuilder;
-import com.github.kjetilv.eda.hash.Hashes;
-import com.github.kjetilv.eda.hash.LeafHasher;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -25,6 +21,26 @@ import static java.util.Objects.requireNonNull;
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
 public class CanonicalMapBuilder<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
+
+    /**
+     * @param <I> Id type
+     * @param <K> Key type
+     * @return Map memoizer
+     */
+    public static <I, K> MapMemoizer<I, K> create(
+        LeafHasher leafHasher,
+        KeyNormalizer<K> keyNormalizer
+    ) {
+        return new CanonicalMapBuilder<>(
+            Hashes::md5HashBuilder,
+            keyNormalizer == null
+                ? KeyNormalizer.keyToString()
+                : keyNormalizer,
+            leafHasher == null
+                ? new DefaultLeafHasher(Hashes::md5HashBuilder, Object::hashCode)
+                : leafHasher
+        );
+    }
 
     private final Map<I, Hash> memoized = new ConcurrentHashMap<>();
 

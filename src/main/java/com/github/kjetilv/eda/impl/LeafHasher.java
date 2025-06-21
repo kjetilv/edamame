@@ -1,4 +1,4 @@
-package com.github.kjetilv.eda.hash;
+package com.github.kjetilv.eda.impl;
 
 public interface LeafHasher {
 

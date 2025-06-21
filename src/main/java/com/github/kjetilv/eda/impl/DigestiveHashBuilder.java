@@ -1,4 +1,4 @@
-package com.github.kjetilv.eda.hash;
+package com.github.kjetilv.eda.impl;
 
 import java.util.function.Function;
 import java.util.stream.Stream;

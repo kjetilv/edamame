@@ -1,10 +1,5 @@
 package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.hash.Hash;
-import com.github.kjetilv.eda.hash.HashBuilder;
-import com.github.kjetilv.eda.hash.Hashes;
-import com.github.kjetilv.eda.hash.LeafHasher;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;

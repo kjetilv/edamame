@@ -1,7 +1,5 @@
 package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.hash.Hash;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

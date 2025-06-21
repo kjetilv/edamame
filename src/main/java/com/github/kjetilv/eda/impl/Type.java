@@ -1,7 +1,5 @@
 package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.hash.HashBuilder;
-
 enum Type {
 
     STRING,
