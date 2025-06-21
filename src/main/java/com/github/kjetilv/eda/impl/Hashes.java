@@ -61,7 +61,9 @@ final class Hashes {
 
     private static final String PADDING = "==";
 
-    private static final int RAW_LEN = Hash.DIGEST_LEN + PADDING.length();
+    private static final int DIGEST_LEN = 22;
+
+    private static final int RAW_LEN = DIGEST_LEN + PADDING.length();
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
@@ -90,7 +92,7 @@ final class Hashes {
     private static String digest(byte[] bytes) {
         String base64 = new String(ENCODER.encode(bytes), ISO_8859_1);
         if (base64.length() == RAW_LEN && base64.endsWith(PADDING)) {
-            return base64.substring(0, Hash.DIGEST_LEN)
+            return base64.substring(0, DIGEST_LEN)
                 .replace('/', '-')
                 .replace('+', '_');
         }

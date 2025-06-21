@@ -23,8 +23,8 @@ public final class MapMemoizers {
      * on all levels. The {@code keyNormalizer} argument provides a callback that will produce (preferably)
      * canonical {@link K} instances from keys in incoming maps.
      * <p>
-     * Since {@link MapMemoizer} accepts {@link java.util.Map Map<?, ?>}, this function needs to accept
-     * {@link Object ?}, i.e. any inputs.
+     * Since {@link MapMemoizer} accepts {@link java.util.Map Map<?, ?>}, this function needs to accept any
+     * input, i.e. {@link Object ?}.
      *
      * @param <I>           Id type
      * @param <K>           Key type

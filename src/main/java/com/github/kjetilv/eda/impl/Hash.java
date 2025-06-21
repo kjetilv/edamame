@@ -8,12 +8,6 @@ import java.util.Arrays;
 @FunctionalInterface
 public interface Hash extends Comparable<Hash> {
 
-    String LPAR = "⟨";
-
-    String RPAR = "⟩";
-
-    int DIGEST_LEN = 22;
-
     /**
      * @return Unique 43-char string representation
      */
