@@ -186,7 +186,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldStripBlankData() {
-        MapsMemoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null);
 
         cache.put(
             42L,
@@ -256,7 +256,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldIgnoreKeyOrder() {
-        MapsMemoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null);
 
         cache.put(
             42L,
@@ -276,7 +276,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldPreserveListOrder() {
-        MapsMemoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null);
 
         cache.put(
             42L,
@@ -302,7 +302,7 @@ class MapsMemoizersTest {
     @SuppressWarnings({"TextBlockMigration", "unchecked", "StringOperationCanBeSimplified"})
     @Test
     void shouldGrudginglyAcceptNullsInLists() {
-        MapsMemoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null);
 
         List<String> canonicalList = Arrays.asList("1", null, "a");
         cache.put(
@@ -340,7 +340,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldPreserveIdentities() {
-        MapsMemoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null);
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
         Map<String, Object> in43 = Map.of(
@@ -428,7 +428,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldCanonicalizeLeaves() {
-        MapsMemoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null);
 
         BigDecimal bd = new BigDecimal("123.234");
         BigInteger bi = new BigInteger("424242");

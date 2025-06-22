@@ -17,14 +17,14 @@ sealed interface HashedTree {
     record Leaf(Hash hash, Object value) implements HashedTree {
     }
 
+    record Collision(Hash hash) implements HashedTree {
+    }
+
     record Null() implements HashedTree {
 
         @Override
         public Hash hash() {
             return Hashes.NULL;
         }
-    }
-
-    record Collision(Hash hash) implements HashedTree {
     }
 }

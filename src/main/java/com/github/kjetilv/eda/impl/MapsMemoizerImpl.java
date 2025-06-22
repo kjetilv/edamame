@@ -67,7 +67,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     ) {
         this.newBuilder = requireNonNull(newBuilder, "newBuilder");
         this.keyNormalizer = requireNonNull(keyNormalizer, "keyNormalizer");
-        this.leafHasher = requireNonNull(leafHasher, "hasher");
+        this.leafHasher = requireNonNull(leafHasher, "leafHasher");
     }
 
     @Override
@@ -261,7 +261,8 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
         return values.stream()
-            .filter(Collision.class::isInstance).findAny();
+            .filter(Collision.class::isInstance)
+            .findAny();
     }
 
     private static Iterable<?> iterable(Object object) {

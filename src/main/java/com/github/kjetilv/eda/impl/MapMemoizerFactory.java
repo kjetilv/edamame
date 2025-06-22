@@ -19,17 +19,17 @@ public final class MapMemoizerFactory {
     }
 
     /**
-     * @param <I>           Id type
-     * @param <K>           Key type
-     * @param keyNormalizer Key normalizer, null means default behaviour
-     * @param leafHasher    Leaf hasher, for testing purposes
+     * @param <I>        Id type
+     * @param <K>        Key type
+     * @param normalizer Key normalizer, null means default behaviour
+     * @param hasher     Leaf hasher, for testing purposes
      * @return Map memoizer
      */
-    static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> keyNormalizer, LeafHasher leafHasher) {
+    static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> normalizer, LeafHasher hasher) {
         return new MapsMemoizerImpl<>(
             HASH_BUILDER_SUPPLIER,
-            keyNormalizer == null ? defaultNormalizer() : keyNormalizer,
-            leafHasher == null ? DEFAULT_LEAF_HASHER : leafHasher
+            normalizer == null ? defaultNormalizer() : normalizer,
+            hasher == null ? DEFAULT_HASHER : hasher
         );
     }
 
@@ -42,7 +42,7 @@ public final class MapMemoizerFactory {
     private static final ToIntFunction<Object> ANY_HASH =
         Object::hashCode;
 
-    private static final LeafHasher DEFAULT_LEAF_HASHER =
+    private static final LeafHasher DEFAULT_HASHER =
         new DefaultLeafHasher(HASH_BUILDER_SUPPLIER, ANY_HASH);
 
     @SuppressWarnings("unchecked")
