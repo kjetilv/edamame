@@ -26,6 +26,8 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
 
     private final Map<I, Map<K, Object>> overflows = new HashMap<>();
 
+    private Set<Hash> memoizedHashes = new HashSet<>();
+
     private Map<Hash, Map<K, Object>> canonicalMaps = new HashMap<>();
 
     private Map<Hash, Object> canonicalLeaves = new HashMap<>();
@@ -66,37 +68,23 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
 
     @Override
     public void put(I identifier, Map<?, ?> value) {
-        Map<K, Object> identified = identify(value);
-        lock.lock();
-        try {
-            doPut(requireNonNull(identifier, "identifier"), identified);
-        } finally {
-            lock.unlock();
-        }
+        requireNonNull(identifier, "identifier");
+        Map<K, Object> normalized = normalize(value);
+        withLock(() -> doPut(identifier, normalized));
     }
 
     @Override
     public Access<I, K> complete() {
-        lock.lock();
-        try {
-            return doComplete();
-        } finally {
-            lock.unlock();
-        }
+        return withLock(this::doComplete);
     }
 
     @Override
     public Map<K, ?> get(I identifier) {
-        lock.lock();
-        try {
-            return doGet(identifier);
-        } finally {
-            lock.unlock();
-        }
+        return withLock(() -> doGet(identifier));
     }
 
     @SuppressWarnings("unchecked")
-    private Map<K, Object> identify(Map<?, ?> value) {
+    private Map<K, Object> normalize(Map<?, ?> value) {
         requireNonNull(value, "value");
         return Maps.normalizeIdentifiers((Map<Object, Object>) Maps.clean(value), keyNormalizer);
     }
@@ -120,16 +108,14 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
         return map;
     }
 
-    private void doPut(I identifier, Map<K, Object> value) {
+    private Object doPut(I identifier, Map<K, Object> value) {
         if (complete) {
             throw new IllegalStateException("Already complete, cannot accept identifier " + identifier);
         }
-        HashedTree node = hashedMap(value);
-        if (node instanceof Collision) {
-            overflows.put(identifier, value);
-        } else {
-            memoized.put(identifier, node.hash());
-        }
+        return switch (hashedMap(value)) {
+            case Collision __ -> overflows.put(identifier, value);
+            case HashedTree node -> memoized.put(identifier, node.hash());
+        };
     }
 
     private Access<I, K> doComplete() {
@@ -137,10 +123,14 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
             return this;
         }
         // Keep maps that are memoized
-        this.canonicalMaps = prunedCanonical(this.canonicalMaps, memoized.values());
+        this.canonicalMaps = canonicalMaps.keySet()
+            .stream()
+            .filter(memoizedHashes::contains)
+            .collect(Collectors.toMap(Function.identity(), canonicalMaps::get));
         // Free memory used for working data
         this.canonicalLeaves = null;
         this.canonicalKeys = null;
+        this.memoizedHashes = null;
         this.complete = true;
         return this;
     }
@@ -189,9 +179,11 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
             hash, __ ->
                 canonicalMap(hashedMap)
         );
-        return existing == null || existing.equals(map)
-            ? new Node(hash)
-            : new Collision(hash);
+        if (existing == null || existing.equals(map)) {
+            memoizedHashes.add(hash);
+            return new Node(hash);
+        }
+        return new Collision(hash);
     }
 
     private K canonicalKey(K key) {
@@ -237,7 +229,23 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
         return Maps.toMap(map.entrySet()
             .stream()
             .map(entry ->
-                Map.entry(canonicalKey(entry.getKey()), transform.apply(entry.getValue()))));
+                Map.entry(
+                    canonicalKey(entry.getKey()),
+                    transform.apply(entry.getValue()))));
+    }
+
+    private <T> T withLock(Supplier<T> action) {
+        lock.lock();
+        try {
+            return action.get();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
+        return values.stream()
+            .filter(Collision.class::isInstance).findAny();
     }
 
     private static Iterable<?> iterable(Object object) {
@@ -247,20 +255,5 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
             list.add(Array.get(object, i));
         }
         return list;
-    }
-
-    private static <K> Map<Hash, Map<K, Object>> prunedCanonical(
-        Map<Hash, Map<K, Object>> maps,
-        Collection<Hash> overflow
-    ) {
-        return maps.keySet()
-            .stream()
-            .filter(new HashSet<>(overflow)::contains)
-            .collect(Collectors.toMap(Function.identity(), maps::get));
-    }
-
-    private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
-        return values.stream()
-            .filter(Collision.class::isInstance).findAny();
     }
 }
