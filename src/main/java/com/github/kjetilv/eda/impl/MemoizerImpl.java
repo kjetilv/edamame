@@ -69,7 +69,8 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
         Map<K, Object> normalized = normalized(identifier, value);
         try {
             withLock(() ->
-                doPut(identifier, normalized));
+                doPut(identifier, normalized)
+            );
         } catch (Exception e) {
             if (complete.get()) {
                 throw new IllegalStateException(this + " already complete, cannot accept " + identifier, e);
@@ -79,15 +80,15 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
     }
 
     @Override
+    public Map<K, ?> get(I identifier) {
+        return withLock(() -> doGet(identifier));
+    }
+
+    @Override
     public Memoized<I, K> complete() {
         return complete.compareAndSet(false, true)
             ? withLock(this::doComplete)
             : this;
-    }
-
-    @Override
-    public Map<K, ?> get(I identifier) {
-        return withLock(() -> doGet(identifier));
     }
 
     private Map<K, Object> doGet(I identifier) {
