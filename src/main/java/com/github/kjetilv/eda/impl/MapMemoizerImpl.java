@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.github.kjetilv.eda.impl.HashedTree.*;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -124,7 +125,7 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
             throw new IllegalStateException("Already complete, cannot accept identifier " + identifier);
         }
         HashedTree node = hashedMap(value);
-        if (node instanceof HashedTree.Collision) {
+        if (node instanceof Collision) {
             overflows.put(identifier, value);
         } else {
             memoized.put(identifier, node.hash());
@@ -150,8 +151,8 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
      */
     private HashedTree hashedMap(Map<K, Object> map) {
         Map<K, HashedTree> hashedMap = transformMap(map, this::hashedTree);
-        return anyCollision(hashedMap.values())
-            .orElseGet(() -> resolveCanonical(map, hashedMap));
+        return anyCollision(hashedMap.values()).orElseGet(() ->
+            resolveCanonical(map, hashedMap));
     }
 
     private HashedTree hashedNodes(Iterable<?> multiple) {
@@ -159,7 +160,7 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
             .map(this::hashedTree)
             .toList();
         return anyCollision(values).orElseGet(() ->
-            new HashedTree.Nodes(hashTrees(values), values));
+            new Nodes(hashTrees(values), values));
     }
 
     @SuppressWarnings("unchecked")
@@ -177,9 +178,9 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
         Hash hash = leafHasher.hash(object);
         Object existing = canonicalLeaves.putIfAbsent(hash, object);
         if (existing != null && !existing.equals(object)) {
-            return new HashedTree.Collision(hash);
+            return new Collision(hash);
         }
-        return new HashedTree.Leaf(hash, object);
+        return new Leaf(hash, object);
     }
 
     private HashedTree resolveCanonical(Map<K, Object> map, Map<K, HashedTree> hashedMap) {
@@ -189,8 +190,8 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
                 canonicalMap(hashedMap)
         );
         return existing == null || existing.equals(map)
-            ? new HashedTree.Node<>(hash, hashedMap)
-            : new HashedTree.Collision(hash);
+            ? new Node(hash)
+            : new Collision(hash);
     }
 
     private K canonicalKey(K key) {
@@ -223,12 +224,12 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
 
     private Object canonical(HashedTree tree) {
         return switch (tree) {
-            case HashedTree.Node<?> node -> canonicalMaps.get(node.hash());
-            case HashedTree.Nodes(Hash ignored, List<HashedTree> values) -> values.stream()
+            case Node node -> canonicalMaps.get(node.hash());
+            case Nodes(Hash ignored, List<HashedTree> values) -> values.stream()
                 .map(this::canonical)
                 .collect(Collectors.toList());
-            case HashedTree.Leaf(Hash hash, Object value) -> canonicalLeaves.getOrDefault(hash, value);
-            case HashedTree.Collision collision -> collision;
+            case Leaf(Hash hash, Object value) -> canonicalLeaves.getOrDefault(hash, value);
+            case Collision collision -> collision;
         };
     }
 
@@ -260,6 +261,6 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
 
     private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
         return values.stream()
-            .filter(HashedTree.Collision.class::isInstance).findAny();
+            .filter(Collision.class::isInstance).findAny();
     }
 }
