@@ -12,7 +12,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static com.github.kjetilv.eda.impl.HashedTree.*;
@@ -26,7 +25,15 @@ import static java.util.Objects.requireNonNull;
  */
 class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
 
-    private final Map<I, Hash> memoized = new HashMap<>();
+    private final Lock lock = new ReentrantLock();
+
+    private final KeyNormalizer<K> keyNormalizer;
+
+    private final Supplier<HashBuilder<byte[]>> newBuilder;
+
+    private final LeafHasher leafHasher;
+
+    private Map<I, Hash> memoized = new HashMap<>();
 
     private Map<Hash, Map<K, Object>> canonicalMaps = new HashMap<>();
 
@@ -39,14 +46,6 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
     private Map<Hash, Object> canonicalLeaves = new HashMap<>();
 
     private Map<Object, K> canonicalKeys = new HashMap<>();
-
-    private final Lock lock = new ReentrantLock();
-
-    private final KeyNormalizer<K> keyNormalizer;
-
-    private final Supplier<HashBuilder<byte[]>> newBuilder;
-
-    private final LeafHasher leafHasher;
 
     /**
      * Use {@link Memoizers#create()} and siblings to create instances of this class.
@@ -68,12 +67,22 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
     @Override
     public void put(I identifier, Map<?, ?> value) {
         Map<K, Object> normalized = normalized(identifier, value);
-        withLock(() -> doPut(identifier, normalized));
+        try {
+            withLock(() ->
+                doPut(identifier, normalized));
+        } catch (Exception e) {
+            if (complete.get()) {
+                throw new IllegalStateException(this + " already complete, cannot accept " + identifier, e);
+            }
+            throw new IllegalStateException("Failed to insert " + identifier, e);
+        }
     }
 
     @Override
     public Memoized<I, K> complete() {
-        return withLock(this::doComplete);
+        return complete.compareAndSet(false, true)
+            ? withLock(this::doComplete)
+            : this;
     }
 
     @Override
@@ -85,40 +94,46 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
         Hash hash = memoized.get(requireNonNull(identifier, "identifier"));
         if (hash == null) {
             if (overflows.isEmpty()) {
-                throw new IllegalArgumentException("Unknown identifier: " + identifier);
+                return null;
             }
-            Map<K, Object> map = overflows.get(identifier);
-            if (map == null) {
-                throw new IllegalArgumentException("Unknown identifier: " + identifier);
-            }
-            return map;
+            return overflows.get(identifier);
         }
         Map<K, Object> map = canonicalMaps.get(hash);
         if (map == null) {
-            throw new IllegalStateException("No hash for: " + identifier);
+            throw new IllegalStateException(this + " missing map for " + identifier + " with hash " + hash);
         }
         return map;
     }
 
     private Object doPut(I identifier, Map<K, Object> value) {
-        if (complete.get()) {
-            throw new IllegalStateException("Already complete, cannot accept identifier " + identifier);
-        }
         return switch (hashedMap(value)) {
             case Collision __ -> overflows.put(identifier, value);
             case HashedTree node -> memoized.put(identifier, node.hash());
         };
     }
 
-    private Memoized<I, K> doComplete() {
-        if (complete.compareAndSet(false, true)) {
-            this.canonicalMaps = Collections.unmodifiableMap(reachableMaps());
-            this.overflows = overflows.isEmpty() ? Collections.emptyMap() : Map.copyOf(overflows);
-            // Free memory used for working data
-            this.canonicalLeaves = null;
-            this.canonicalKeys = null;
-            this.memoizedHashes = null;
-        }
+    private MemoizerImpl<I, K> doComplete() {
+        // Lock down lookupable maps
+        this.canonicalMaps = Collections.unmodifiableMap(canonicalMaps.keySet()
+            .stream()
+            .filter(memoizedHashes::contains)
+            .collect(Collectors.toMap(
+                Function.identity(),
+                canonicalMaps::get,
+                (a, b) -> {
+                    throw new IllegalStateException("Duplicate key " + a);
+                },
+                () ->
+                    Maps.sizedMap(canonicalMaps.size())
+            )));
+        this.memoized = Collections.unmodifiableMap(this.memoized);
+        this.overflows = overflows.isEmpty()
+            ? Collections.emptyMap()
+            : Collections.unmodifiableMap(overflows);
+        // Free memory used by other maps
+        this.canonicalLeaves = null;
+        this.canonicalKeys = null;
+        this.memoizedHashes = null;
         return this;
     }
 
@@ -226,25 +241,6 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
                 )));
     }
 
-    private Map<Hash, Map<K, Object>> reachableMaps() {
-        return canonicalMaps.keySet()
-            .stream()
-            .filter(memoizedHashes::contains)
-            .collect(toSizedImmutableMap());
-    }
-
-    private Collector<Hash, ?, Map<Hash, Map<K, Object>>> toSizedImmutableMap() {
-        return Collectors.toMap(
-            Function.identity(),
-            canonicalMaps::get,
-            (a, b) -> {
-                throw new IllegalStateException("Duplicate key " + a);
-            },
-            () ->
-                Maps.sizedMap(canonicalMaps.size())
-        );
-    }
-
     private <T> T withLock(Supplier<T> action) {
         lock.lock();
         try {
@@ -266,5 +262,15 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
             list.add(Array.get(object, i));
         }
         return list;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" +
+               memoizedHashes.size() + (overflows.isEmpty() ? "" : "+" + overflows.size()) +
+               (complete.get()
+                   ? " completed"
+                   : " working maps:" + canonicalMaps.size()
+               ) + "]";
     }
 }
