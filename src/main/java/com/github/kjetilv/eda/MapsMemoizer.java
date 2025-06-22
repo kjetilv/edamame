@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * The memoizer! Maps will be stored in canonical form, avoiding memory wasted on identical trees.
- * Extends {@link Memoized} to provide lookup of stored maps.
+ * Extends {@link MemoizedMaps} to provide lookup of stored maps.
  * <p>
  * In cases where the set of maps is known and finite, the {@link #complete()} method can be invoked
  * after all data are inserted. This allows further savings by throwing away internal book-keeping
@@ -14,7 +14,7 @@ import java.util.Map;
  * @param <I> Id type, used to identify maps
  * @param <K> Key type, used as keys in stored maps
  */
-public interface Memoizer<I, K> extends Memoized<I, K> {
+public interface MapsMemoizer<I, K> extends MemoizedMaps<I, K> {
 
     /**
      * Store one map.
@@ -31,5 +31,5 @@ public interface Memoizer<I, K> extends Memoized<I, K> {
      *
      * @return This instance
      */
-    Memoized<I, K> complete();
+    MemoizedMaps<I, K> complete();
 }

@@ -1,9 +1,9 @@
 package com.github.kjetilv.eda.impl;
 
 import com.github.kjetilv.eda.KeyNormalizer;
-import com.github.kjetilv.eda.Memoized;
-import com.github.kjetilv.eda.Memoizer;
-import com.github.kjetilv.eda.Memoizers;
+import com.github.kjetilv.eda.MapsMemoizer;
+import com.github.kjetilv.eda.MapsMemoizers;
+import com.github.kjetilv.eda.MemoizedMaps;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -13,19 +13,24 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.github.kjetilv.eda.impl.HashedTree.*;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Use {@link Memoizers#create()} and siblings to create instances of this class.
+ * Works by hashing nodes and leaves and storing them under their hashes. When structures and/or values
+ * re-occur, they are replaced by the already registered, canonical instances.
+ * <p>
+ * MD5 (128-bit) hashes are used. If an incoming value provokes a hash collision, it is stored as-is,
+ * separately from the canonical trees.  This should be rare.
+ * <p>
+ * Use {@link MapsMemoizers#create()} and siblings to create instances of this class.
  *
  * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
-class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
-
-    private final Lock lock = new ReentrantLock();
+class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     private final KeyNormalizer<K> keyNormalizer;
 
@@ -47,14 +52,15 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
 
     private Map<Object, K> canonicalKeys = new HashMap<>();
 
+    private final Lock lock = new ReentrantLock();
+
     /**
-     * Use {@link Memoizers#create()} and siblings to create instances of this class.
-     *
      * @param newBuilder    Hash builder, not null
      * @param keyNormalizer Key normalizer, not null
      * @param leafHasher    Hasher, not null
+     * @see MapsMemoizers#create(KeyNormalizer)
      */
-    MemoizerImpl(
+    MapsMemoizerImpl(
         Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
         LeafHasher leafHasher
@@ -85,7 +91,7 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
     }
 
     @Override
-    public Memoized<I, K> complete() {
+    public MemoizedMaps<I, K> complete() {
         return complete.compareAndSet(false, true)
             ? withLock(this::doComplete)
             : this;
@@ -113,7 +119,7 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
         };
     }
 
-    private MemoizerImpl<I, K> doComplete() {
+    private MapsMemoizerImpl<I, K> doComplete() {
         // Lock down lookupable maps
         this.canonicalMaps = Collections.unmodifiableMap(canonicalMaps.keySet()
             .stream()
@@ -165,7 +171,7 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
 
     @SuppressWarnings("unchecked")
     private HashedTree hashedTree(Object object) {
-        return switch (object) {
+        return object == null ? NULL : switch (object) {
             case Map<?, ?> map -> hashedMap((Map<K, Object>) map);
             case Iterable<?> iterable -> hashedNodes(iterable);
             default -> object.getClass().isArray()
@@ -177,10 +183,9 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
     private HashedTree hashedLeaf(Object object) {
         Hash hash = leafHasher.hash(object);
         Object existing = canonicalLeaves.putIfAbsent(hash, object);
-        if (existing != null && !existing.equals(object)) {
-            return new Collision(hash);
-        }
-        return new Leaf(hash, object);
+        return existing == null || existing.equals(object)
+            ? new Leaf(hash, object)
+            : new Collision(hash);
     }
 
     private HashedTree resolveCanonical(Map<K, Object> map, Map<K, HashedTree> hashedMap) {
@@ -205,8 +210,10 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
         HashBuilder<byte[]> hb = newBuilder.get();
         HashBuilder<Hash> hashHb = hb.map(Hash::bytes);
         hb.<Integer>map(Hashes::bytes).hash(trees.size());
-        return hashHb.hash(trees.stream()
-            .map(HashedTree::hash)).get();
+        Stream<Hash> hashes = trees.stream()
+            .filter(Objects::nonNull)
+            .map(HashedTree::hash);
+        return hashHb.hash(hashes).get();
     }
 
     private Hash hashMap(Map<K, ? extends HashedTree> tree) {
@@ -222,12 +229,13 @@ class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
     }
 
     private Object canonicalMap(HashedTree tree) {
-        return switch (tree) {
+        return tree == null ? NULL : switch (tree) {
             case Node node -> canonicalMaps.get(node.hash());
             case Nodes(Hash ignored, List<HashedTree> values) -> values.stream()
                 .map(this::canonicalMap)
                 .collect(Collectors.toList());
             case Leaf(Hash hash, Object value) -> canonicalLeaves.getOrDefault(hash, value);
+            case Null _ull -> null;
             case Collision collision -> collision;
         };
     }

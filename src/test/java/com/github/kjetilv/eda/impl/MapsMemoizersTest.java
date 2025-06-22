@@ -1,23 +1,21 @@
 package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.Memoized;
 import com.github.kjetilv.eda.KeyNormalizer;
-import com.github.kjetilv.eda.Memoizer;
+import com.github.kjetilv.eda.MapsMemoizer;
+import com.github.kjetilv.eda.MemoizedMaps;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.github.kjetilv.eda.impl.MapMemoizerFactory.create;
 import static org.junit.jupiter.api.Assertions.*;
 
-class MemoizersTest {
+class MapsMemoizersTest {
 
     static HashBuilder<byte[]> md5HashBuilder() {
         return new DigestiveHashBuilder<>(new ByteDigest());
@@ -29,9 +27,9 @@ class MemoizersTest {
         Object bi = new BigInteger("424242");
         LeafHasher leafHasher = collidingLeafHasher();
 
-        Memoizer<Long, String> memoizer = create(null, leafHasher);
+        MapsMemoizer<Long, String> mapsMemoizer = create(null, leafHasher);
 
-        memoizer.put(
+        mapsMemoizer.put(
             42L, Map.of(
                 "zot2", bd,
                 "zot1", bi
@@ -39,13 +37,13 @@ class MemoizersTest {
         );
         BigDecimal bdCopy = new BigDecimal("123.234");
         BigInteger biCopy = new BigInteger("424242");
-        memoizer.put(
+        mapsMemoizer.put(
             43L, Map.of(
                 "zot2", bdCopy,
                 "zot1", biCopy
             )
         );
-        Memoized<Long, String> access = memoizer.complete();
+        MemoizedMaps<Long, String> access = mapsMemoizer.complete();
 
         Map<String, ?> map42 = access.get(42L);
         Map<String, ?> map43 = access.get(43L);
@@ -77,15 +75,15 @@ class MemoizersTest {
             leaf.equals("3") || leaf.equals("7")
                 ? collider
                 : new DefaultLeafHasher(
-                    MemoizersTest::md5HashBuilder,
+                    MapsMemoizersTest::md5HashBuilder,
                     Object::hashCode
                 ).hash(leaf);
-        Memoizer<Long, String> cache = create(null, leafHasher);
+        MapsMemoizer<Long, String> cache = create(null, leafHasher);
 
         for (int i = 0; i < 10; i++) {
             cache.put((long) i, Map.of("foo", String.valueOf(i)));
         }
-        Memoized<Long, String> access = cache.complete();
+        MemoizedMaps<Long, String> access = cache.complete();
         for (int i = 0; i < 10; i++) {
             Map<String, String> reconstructed = Map.of("foo", String.valueOf(i));
             assertEquals(reconstructed, access.get((long) i));
@@ -95,7 +93,7 @@ class MemoizersTest {
     @Test
     void shouldRespectCanonicalKeys() {
         KeyNormalizer<CaKe> caKeKeyNormalizer = s -> CaKe.get(s.toString());
-        Memoizer<Long, CaKe> cache = create(caKeKeyNormalizer, null);
+        MapsMemoizer<Long, CaKe> cache = create(caKeKeyNormalizer, null);
 
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
@@ -129,7 +127,7 @@ class MemoizersTest {
         cache.put(43L, in43);
         cache.put(44L, in44);
 
-        Memoized<Long, CaKe> access = cache.complete();
+        MemoizedMaps<Long, CaKe> access = cache.complete();
         Map<CaKe, ?> cake43 = access.get(43L);
         Map<CaKe, ?> cake44 = access.get(44L);
 
@@ -188,7 +186,7 @@ class MemoizersTest {
 
     @Test
     void shouldStripBlankData() {
-        Memoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null, null);
 
         cache.put(
             42L,
@@ -205,7 +203,7 @@ class MemoizersTest {
                 "zot", Collections.emptyList()
             )
         );
-        Memoized<Long, String> access = cache.complete();
+        MemoizedMaps<Long, String> access = cache.complete();
 
         assertEquals(
             Map.of("foo", "bar"),
@@ -221,7 +219,7 @@ class MemoizersTest {
     @Test
     void shouldStringify() {
         KeyNormalizer<String> stringKeyNormalizer = s -> s.toString().intern();
-        Memoizer<Long, String> cache = create(stringKeyNormalizer, null);
+        MapsMemoizer<Long, String> cache = create(stringKeyNormalizer, null);
 
         cache.put(
             42L,
@@ -234,7 +232,7 @@ class MemoizersTest {
                 true, Collections.emptyList()
             )
         );
-        Memoized<Long, String> access = cache.complete();
+        MemoizedMaps<Long, String> access = cache.complete();
         Map<String, ?> out42 = access.get(42L);
         Map<String, ?> out45 = access.get(45L);
         assertEquals(
@@ -258,7 +256,7 @@ class MemoizersTest {
 
     @Test
     void shouldIgnoreKeyOrder() {
-        Memoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null, null);
 
         cache.put(
             42L,
@@ -269,7 +267,7 @@ class MemoizersTest {
             map(IntStream.range(0, 10)
                 .map(i -> 9 - i))
         );
-        Memoized<Long, String> access = cache.complete();
+        MemoizedMaps<Long, String> access = cache.complete();
         Map<String, ?> canon42 = access.get(42L);
         Map<String, ?> canon43 = access.get(43L);
         assertEquals(canon42, canon43);
@@ -278,7 +276,7 @@ class MemoizersTest {
 
     @Test
     void shouldPreserveListOrder() {
-        Memoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null, null);
 
         cache.put(
             42L,
@@ -295,15 +293,54 @@ class MemoizersTest {
                     .toList()
             )
         );
-        Memoized<Long, String> access = cache.complete();
+        MemoizedMaps<Long, String> access = cache.complete();
         Map<String, ?> canon42 = access.get(42L);
         Map<String, ?> canon43 = access.get(43L);
         assertNotEquals(canon42, canon43);
     }
 
+    @SuppressWarnings({"TextBlockMigration", "unchecked", "StringOperationCanBeSimplified"})
+    @Test
+    void shouldGrudginglyAcceptNullsInLists() {
+        MapsMemoizer<Long, String> cache = create(null, null);
+
+        List<String> canonicalList = Arrays.asList("1", null, "a");
+        cache.put(
+            42L,
+            Map.of(
+                "foo", canonicalList
+            )
+        );
+        List<String> otherList = Arrays.asList(new String("1"), null, new String("a"));
+        cache.put(
+            43L,
+            Map.of(
+                "foo", otherList
+            )
+        );
+        assertNotSame(otherList.get(0), canonicalList.get(0));
+        assertNotSame(otherList.get(2), canonicalList.get(2));
+
+        MemoizedMaps<Long, String> access = cache.complete();
+        Map<String, ?> canon42 = access.get(42L);
+        Map<String, ?> canon43 = access.get(43L);
+        assertEquals(canon42, canon43);
+
+        List<String> list42 = (List<String>) canon42.get("foo");
+        List<String> list43 = (List<String>) canon43.get("foo");
+
+        assertEquals(Arrays.asList("1", null, "a"), list42);
+        assertEquals(Arrays.asList("1", null, "a"), list43);
+
+        assertSame(list42.get(0), list43.get(0));
+        assertNull(list42.get(1));
+        assertNull(list43.get(1));
+        assertSame(list42.get(2), list43.get(2));
+    }
+
     @Test
     void shouldPreserveIdentities() {
-        Memoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null, null);
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
         Map<String, Object> in43 = Map.of(
@@ -326,7 +363,7 @@ class MemoizersTest {
         cache.put(43L, in43);
         cache.put(44L, in44);
 
-        Memoized<Long, String> access = cache.complete();
+        MemoizedMaps<Long, String> access = cache.complete();
         Map<String, ?> out42as48 = access.get(48L);
         Map<String, ?> out42 = access.get(42L);
 
@@ -391,7 +428,7 @@ class MemoizersTest {
 
     @Test
     void shouldCanonicalizeLeaves() {
-        Memoizer<Long, String> cache = create(null, null);
+        MapsMemoizer<Long, String> cache = create(null, null);
 
         BigDecimal bd = new BigDecimal("123.234");
         BigInteger bi = new BigInteger("424242");
@@ -408,7 +445,7 @@ class MemoizersTest {
                 "zot1", new BigInteger("424242")
             )
         );
-        Memoized<Long, String> access = cache.complete();
+        MemoizedMaps<Long, String> access = cache.complete();
 
         assertSame(bd, access.get(42L).get("zot2"));
         assertSame(bi, access.get(42L).get("zot1"));

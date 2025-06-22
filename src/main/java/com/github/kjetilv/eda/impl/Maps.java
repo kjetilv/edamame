@@ -63,13 +63,14 @@ final class Maps {
     }
 
     private static Object cleanObject(Object value) {
-        return switch (value) {
-            case Map<?, ?> map -> clean(map);
-            case Iterable<?> iterable -> stream(iterable)
-                .map(Maps::cleanObject)
-                .toList();
-            default -> value;
-        };
+        return value == null ? null
+            : switch (value) {
+                case Map<?, ?> map -> clean(map);
+                case Iterable<?> iterable -> stream(iterable)
+                    .map(Maps::cleanObject)
+                    .toList();
+                default -> value;
+            };
     }
 
     private static <T> Map.Entry<T, Object> pruneEntry(Map.Entry<T, ?> entry) {
@@ -103,13 +104,14 @@ final class Maps {
         Object value,
         KeyNormalizer<K> keyNormalizer
     ) {
-        return switch (value) {
-            case Map<?, ?> map -> rewriteMap(keyNormalizer, map);
-            case Iterable<?> iterable -> stream(iterable)
-                .map(v ->
-                    rewriteObject(v, keyNormalizer))
-                .toList();
-            default -> value;
-        };
+        return value == null ? null
+            : switch (value) {
+                case Map<?, ?> map -> rewriteMap(keyNormalizer, map);
+                case Iterable<?> iterable -> stream(iterable)
+                    .map(v ->
+                        rewriteObject(v, keyNormalizer))
+                    .toList();
+                default -> value;
+            };
     }
 }

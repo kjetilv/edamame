@@ -1,6 +1,5 @@
 package com.github.kjetilv.eda.impl;
 
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -15,19 +14,14 @@ interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Suppl
 
     @Override
     default void accept(T t) {
-        hash(t);
+        if (t != null) {
+            hash(t);
+        }
     }
 
     @Override
     default HashBuilder<T> apply(T t) {
         accept(t);
-        return this;
-    }
-
-    default HashBuilder<T> hash(List<T> ts) {
-        for (T t : ts) {
-            accept(t);
-        }
         return this;
     }
 

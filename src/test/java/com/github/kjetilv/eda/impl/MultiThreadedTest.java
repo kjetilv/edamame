@@ -1,6 +1,6 @@
 package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.Memoizer;
+import com.github.kjetilv.eda.MapsMemoizer;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -12,7 +12,7 @@ public class MultiThreadedTest {
 
     @Test
     void test() {
-        Memoizer<Object, CaKe> memoizer = create(key -> CaKe.get(key.toString()), null
+        MapsMemoizer<Object, CaKe> mapsMemoizer = create(key -> CaKe.get(key.toString()), null
         );
 
         CompletableFuture<Void> voider = CompletableFuture.runAsync(() -> {
@@ -30,10 +30,10 @@ public class MultiThreadedTest {
                             "zot", j
                         )
                     );
-                    memoizer.put(i * 100 + j, caKeMap);
+                    mapsMemoizer.put(i * 100 + j, caKeMap);
                 }
             }
-            memoizer.complete();
+            mapsMemoizer.complete();
         });
 
         voider.join();

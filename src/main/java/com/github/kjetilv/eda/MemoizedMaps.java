@@ -8,7 +8,7 @@ import java.util.Map;
  * @param <I> Id type, used to identify maps
  * @param <K> Key type, used as keys in stored maps
  */
-public interface Memoized<I, K> {
+public interface MemoizedMaps<I, K> {
 
     /**
      * @param identifier Identifier

@@ -27,10 +27,7 @@ final class DefaultLeafHasher implements LeafHasher {
 
     @Override
     public Hash hash(Object leaf) {
-        return hash(newBuilder.get(), leaf);
-    }
-
-    private Hash hash(HashBuilder<byte[]> hb, Object leaf) {
+        HashBuilder<byte[]> hb = newBuilder.get();
         return hashAny(hb, leaf, anyHash).get();
     }
 
@@ -53,12 +50,12 @@ final class DefaultLeafHasher implements LeafHasher {
 
     private static HashBuilder<byte[]> hashNumber(HashBuilder<byte[]> hb, Number n) {
         return switch (n) {
-            case Double d -> T.DOUBLE.tag(hb).hash(Hashes.bytes(d));
-            case Float f -> T.FLOAT.tag(hb).hash(Hashes.bytes(f));
             case Long l -> T.LONG.tag(hb).hash(Hashes.bytes(l));
             case Integer i -> T.INT.tag(hb).hash(Hashes.bytes(i));
+            case Double d -> T.DOUBLE.tag(hb).hash(Hashes.bytes(Double.doubleToRawLongBits(d)));
+            case Float f -> T.FLOAT.tag(hb).hash(Hashes.bytes(Float.floatToRawIntBits(f)));
             case Short s -> T.SHORT.tag(hb).hash(Hashes.bytes(s));
-            case Byte b -> T.BYTE.tag(hb).hash(typeBytes(b));
+            case Byte b -> T.BYTE.tag(hb).hash(new byte[] {(byte) (int) b});
             default -> hashString(T.OTHER_NUMERIC.tag(hb), n.toString());
         };
     }
@@ -114,10 +111,6 @@ final class DefaultLeafHasher implements LeafHasher {
 
     private static HashBuilder<byte[]> hashBigInteger(HashBuilder<byte[]> hashBuilder, BigInteger bigInteger) {
         return hashBuilder.hash(bigInteger.toByteArray());
-    }
-
-    private static byte[] typeBytes(int i) {
-        return new byte[] {(byte) i};
     }
 
     private enum T {
