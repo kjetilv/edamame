@@ -5,10 +5,12 @@ import com.github.kjetilv.eda.MapMemoizer;
 
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static com.github.kjetilv.eda.impl.HashedTree.*;
@@ -24,11 +26,13 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
 
     private final Map<I, Hash> memoized = new HashMap<>();
 
-    private final Map<I, Map<K, Object>> overflows = new HashMap<>();
+    private Map<Hash, Map<K, Object>> canonicalMaps = new HashMap<>();
+
+    private Map<I, Map<K, Object>> overflows = new HashMap<>();
+
+    private final AtomicBoolean complete = new AtomicBoolean();
 
     private Set<Hash> memoizedHashes = new HashSet<>();
-
-    private Map<Hash, Map<K, Object>> canonicalMaps = new HashMap<>();
 
     private Map<Hash, Object> canonicalLeaves = new HashMap<>();
 
@@ -41,8 +45,6 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
 
     private final LeafHasher leafHasher;
-
-    private boolean complete;
 
     /**
      * Use {@link com.github.kjetilv.eda.MapMemoizers#create()} and siblings to create instances of this class.
@@ -68,8 +70,7 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
 
     @Override
     public void put(I identifier, Map<?, ?> value) {
-        requireNonNull(identifier, "identifier");
-        Map<K, Object> normalized = normalize(value);
+        Map<K, Object> normalized = normalized(identifier, value);
         withLock(() -> doPut(identifier, normalized));
     }
 
@@ -81,12 +82,6 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
     @Override
     public Map<K, ?> get(I identifier) {
         return withLock(() -> doGet(identifier));
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<K, Object> normalize(Map<?, ?> value) {
-        requireNonNull(value, "value");
-        return Maps.normalizeIdentifiers((Map<Object, Object>) Maps.clean(value), keyNormalizer);
     }
 
     private Map<K, Object> doGet(I identifier) {
@@ -109,7 +104,7 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
     }
 
     private Object doPut(I identifier, Map<K, Object> value) {
-        if (complete) {
+        if (complete.get()) {
             throw new IllegalStateException("Already complete, cannot accept identifier " + identifier);
         }
         return switch (hashedMap(value)) {
@@ -119,20 +114,22 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
     }
 
     private Access<I, K> doComplete() {
-        if (complete) {
-            return this;
+        if (complete.compareAndSet(false, true)) {
+            this.canonicalMaps = Collections.unmodifiableMap(reachableMaps());
+            this.overflows = overflows.isEmpty() ? Collections.emptyMap() : Map.copyOf(overflows);
+            // Free memory used for working data
+            this.canonicalLeaves = null;
+            this.canonicalKeys = null;
+            this.memoizedHashes = null;
         }
-        // Keep maps that are memoized
-        this.canonicalMaps = canonicalMaps.keySet()
-            .stream()
-            .filter(memoizedHashes::contains)
-            .collect(Collectors.toMap(Function.identity(), canonicalMaps::get));
-        // Free memory used for working data
-        this.canonicalLeaves = null;
-        this.canonicalKeys = null;
-        this.memoizedHashes = null;
-        this.complete = true;
         return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<K, Object> normalized(I identifier, Map<?, ?> value) {
+        requireNonNull(identifier, "identifier");
+        requireNonNull(value, "value");
+        return Maps.normalizeIdentifiers((Map<Object, Object>) Maps.clean(value), keyNormalizer);
     }
 
     /**
@@ -231,7 +228,27 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
             .map(entry ->
                 Map.entry(
                     canonicalKey(entry.getKey()),
-                    transform.apply(entry.getValue()))));
+                    transform.apply(entry.getValue())
+                )));
+    }
+
+    private Map<Hash, Map<K, Object>> reachableMaps() {
+        return canonicalMaps.keySet()
+            .stream()
+            .filter(memoizedHashes::contains)
+            .collect(toSizedImmutableMap());
+    }
+
+    private Collector<Hash, ?, Map<Hash, Map<K, Object>>> toSizedImmutableMap() {
+        return Collectors.toMap(
+            Function.identity(),
+            canonicalMaps::get,
+            (a, b) -> {
+                throw new IllegalStateException("Duplicate key " + a);
+            },
+            () ->
+                Maps.sizedMap(canonicalMaps.size())
+        );
     }
 
     private <T> T withLock(Supplier<T> action) {
