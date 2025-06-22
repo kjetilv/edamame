@@ -1,7 +1,7 @@
 package com.github.kjetilv.eda.impl;
 
 import com.github.kjetilv.eda.KeyNormalizer;
-import com.github.kjetilv.eda.MapMemoizer;
+import com.github.kjetilv.eda.Memoizer;
 
 import java.util.function.Supplier;
 
@@ -15,7 +15,7 @@ public final class MapMemoizerFactory {
      * @return Map memoizer
      */
     @SuppressWarnings("unchecked")
-    public static <I, K> MapMemoizer<I, K> create(
+    public static <I, K> Memoizer<I, K> create(
         KeyNormalizer<K> keyNormalizer,
         LeafHasher leafHasher
     ) {
@@ -27,7 +27,7 @@ public final class MapMemoizerFactory {
         LeafHasher leaves = leafHasher == null
             ? new DefaultLeafHasher(supplier, Object::hashCode)
             : leafHasher;
-        return new MapMemoizerImpl<>(supplier, normalizer, leaves);
+        return new MemoizerImpl<>(supplier, normalizer, leaves);
     }
 
     private MapMemoizerFactory() {

@@ -1,7 +1,9 @@
 package com.github.kjetilv.eda.impl;
 
 import com.github.kjetilv.eda.KeyNormalizer;
-import com.github.kjetilv.eda.MapMemoizer;
+import com.github.kjetilv.eda.Memoized;
+import com.github.kjetilv.eda.Memoizer;
+import com.github.kjetilv.eda.Memoizers;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -17,12 +19,12 @@ import static com.github.kjetilv.eda.impl.HashedTree.*;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Use {@link com.github.kjetilv.eda.MapMemoizers#create()} and siblings to create instances of this class.
+ * Use {@link Memoizers#create()} and siblings to create instances of this class.
  *
  * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
-class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, K> {
+class MemoizerImpl<I, K> implements Memoizer<I, K>, Memoized<I, K> {
 
     private final Map<I, Hash> memoized = new HashMap<>();
 
@@ -47,13 +49,13 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
     private final LeafHasher leafHasher;
 
     /**
-     * Use {@link com.github.kjetilv.eda.MapMemoizers#create()} and siblings to create instances of this class.
+     * Use {@link Memoizers#create()} and siblings to create instances of this class.
      *
      * @param newBuilder    Hash builder, not null
      * @param keyNormalizer Key normalizer, not null
      * @param leafHasher    Hasher, not null
      */
-    MapMemoizerImpl(
+    MemoizerImpl(
         Supplier<HashBuilder<byte[]>> newBuilder,
         KeyNormalizer<K> keyNormalizer,
         LeafHasher leafHasher
@@ -64,18 +66,13 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
     }
 
     @Override
-    public int size() {
-        return memoized.size();
-    }
-
-    @Override
     public void put(I identifier, Map<?, ?> value) {
         Map<K, Object> normalized = normalized(identifier, value);
         withLock(() -> doPut(identifier, normalized));
     }
 
     @Override
-    public Access<I, K> complete() {
+    public Memoized<I, K> complete() {
         return withLock(this::doComplete);
     }
 
@@ -113,7 +110,7 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
         };
     }
 
-    private Access<I, K> doComplete() {
+    private Memoized<I, K> doComplete() {
         if (complete.compareAndSet(false, true)) {
             this.canonicalMaps = Collections.unmodifiableMap(reachableMaps());
             this.overflows = overflows.isEmpty() ? Collections.emptyMap() : Map.copyOf(overflows);
@@ -173,8 +170,9 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
     private HashedTree resolveCanonical(Map<K, Object> map, Map<K, HashedTree> hashedMap) {
         Hash hash = hashMap(hashedMap);
         Map<K, Object> existing = canonicalMaps.computeIfAbsent(
-            hash, __ ->
-                canonicalMap(hashedMap)
+            hash,
+            __ ->
+                transformMap(hashedMap, this::canonicalMap)
         );
         if (existing == null || existing.equals(map)) {
             memoizedHashes.add(hash);
@@ -207,15 +205,11 @@ class MapMemoizerImpl<I, K> implements MapMemoizer<I, K>, MapMemoizer.Access<I, 
         return hb.get();
     }
 
-    private Map<K, Object> canonicalMap(Map<K, HashedTree> map) {
-        return transformMap(map, this::canonical);
-    }
-
-    private Object canonical(HashedTree tree) {
+    private Object canonicalMap(HashedTree tree) {
         return switch (tree) {
             case Node node -> canonicalMaps.get(node.hash());
             case Nodes(Hash ignored, List<HashedTree> values) -> values.stream()
-                .map(this::canonical)
+                .map(this::canonicalMap)
                 .collect(Collectors.toList());
             case Leaf(Hash hash, Object value) -> canonicalLeaves.getOrDefault(hash, value);
             case Collision collision -> collision;
