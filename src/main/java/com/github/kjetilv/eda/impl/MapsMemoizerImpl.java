@@ -9,7 +9,9 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -52,7 +54,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     private Map<Object, K> canonicalKeys = new HashMap<>();
 
-    private final Lock lock = new ReentrantLock();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
      * @param newBuilder    Hash builder, not null
@@ -74,8 +76,10 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     public void put(I identifier, Map<?, ?> value) {
         Map<K, Object> normalized = normalized(identifier, value);
         try {
-            withLock(() ->
-                doPut(identifier, normalized)
+            withLock(
+                lock.writeLock(),
+                () ->
+                    doPut(identifier, normalized)
             );
         } catch (Exception e) {
             if (complete.get()) {
@@ -87,13 +91,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     @Override
     public Map<K, ?> get(I identifier) {
-        return withLock(() -> doGet(identifier));
+        return withLock(lock.readLock(), () -> doGet(identifier));
     }
 
     @Override
     public MemoizedMaps<I, K> complete() {
         return complete.compareAndSet(false, true)
-            ? withLock(this::doComplete)
+            ? withLock(lock.writeLock(), this::doComplete)
             : this;
     }
 
@@ -121,19 +125,10 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     private MapsMemoizerImpl<I, K> doComplete() {
         // Lock down lookupable maps
-        this.canonicalMaps = Collections.unmodifiableMap(canonicalMaps.keySet()
-            .stream()
-            .filter(memoizedHashes::contains)
-            .collect(Collectors.toMap(
-                Function.identity(),
-                canonicalMaps::get,
-                (a, b) -> {
-                    throw new IllegalStateException("Duplicate key " + a);
-                },
-                () ->
-                    Maps.sizedMap(canonicalMaps.size())
-            )));
-        this.memoized = Collections.unmodifiableMap(this.memoized);
+        this.canonicalMaps =
+            Collections.unmodifiableMap(harvested(canonicalMaps, memoizedHashes));
+        this.memoized =
+            Collections.unmodifiableMap(this.memoized);
         this.overflows = overflows.isEmpty()
             ? Collections.emptyMap()
             : Collections.unmodifiableMap(overflows);
@@ -250,13 +245,28 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                 )));
     }
 
-    private <T> T withLock(Supplier<T> action) {
+    private <T> T withLock(Lock lock, Supplier<T> action) {
         lock.lock();
         try {
             return action.get();
         } finally {
             lock.unlock();
         }
+    }
+
+    private static <K> Map<Hash, Map<K, Object>> harvested(
+        Map<Hash, Map<K, Object>> maps,
+        Set<Hash> hashes
+    ) {
+        return maps.keySet()
+            .stream()
+            .filter(hashes::contains)
+            .collect(Collectors.toMap(
+                Function.identity(),
+                maps::get,
+                noMerge(),
+                () -> Maps.sizedMap(maps.size())
+            ));
     }
 
     private static Optional<HashedTree> anyCollision(Collection<HashedTree> values) {
@@ -274,13 +284,22 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
         return list;
     }
 
+    private static <K> BinaryOperator<Map<K, Object>> noMerge() {
+        return (k1, k2) -> {
+            throw new IllegalStateException("Duplicate key " + k1 + "/" + k2);
+        };
+    }
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
-               memoizedHashes.size() + (overflows.isEmpty() ? "" : "+" + overflows.size()) +
-               (complete.get()
-                   ? " completed"
-                   : " working maps:" + canonicalMaps.size()
-               ) + "]";
+            withLock(
+                lock.readLock(),
+                () -> memoized.size() + (overflows.isEmpty() ? "" : "+" + overflows.size()) +
+                      (complete.get()
+                          ? " completed"
+                          : " working maps:" + canonicalMaps.size()
+                      ) + "]"
+            );
     }
 }
