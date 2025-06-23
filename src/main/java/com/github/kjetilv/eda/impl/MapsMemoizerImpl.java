@@ -124,7 +124,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                 memoized.put(identifier, hash);
                 memoizedHashes.add(hash);
             }
-        };
+        }
         return null;
     }
 
@@ -250,7 +250,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                 )));
     }
 
-    private <T> T withLock(Lock lock, Supplier<T> action) {
+    private static <T> T withLock(Lock lock, Supplier<T> action) {
         lock.lock();
         try {
             return action.get();
