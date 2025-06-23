@@ -117,10 +117,15 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     }
 
     private Object doPut(I identifier, Map<K, Object> value) {
-        return switch (hashedMap(value)) {
+        switch (hashedMap(value)) {
             case Collision __ -> overflows.put(identifier, value);
-            case HashedTree node -> memoized.put(identifier, node.hash());
+            case HashedTree node -> {
+                Hash hash = node.hash();
+                memoized.put(identifier, hash);
+                memoizedHashes.add(hash);
+            }
         };
+        return null;
     }
 
     private MapsMemoizerImpl<I, K> doComplete() {
@@ -293,13 +298,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
-            withLock(
-                lock.readLock(),
-                () -> memoized.size() + (overflows.isEmpty() ? "" : "+" + overflows.size()) +
-                      (complete.get()
-                          ? " completed"
-                          : " working maps:" + canonicalMaps.size()
-                      ) + "]"
-            );
+               withLock(
+                   lock.readLock(),
+                   () -> memoized.size() + (overflows.isEmpty() ? "" : "+" + overflows.size()) +
+                         (complete.get()
+                             ? " completed"
+                             : " working maps:" + canonicalMaps.size()
+                         ) + "]"
+               );
     }
 }
