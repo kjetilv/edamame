@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
- * Stateful interface for building ids.
+ * Stateful interface for building hashes.
  *
  * @param <T>
  */
@@ -33,7 +33,7 @@ interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Suppl
     HashBuilder<T> hash(T t);
 
     /**
-     * Get the id, reset the underlying hasher
+     * Get the id, reset the underlying hasher.
      *
      * @return Hash
      */

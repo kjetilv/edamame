@@ -24,7 +24,7 @@ sealed interface HashedTree {
 
         @Override
         public Hash hash() {
-            return Hashes.NULL;
+            return Hash.NULL;
         }
     }
 }

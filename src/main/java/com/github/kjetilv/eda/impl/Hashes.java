@@ -53,8 +53,6 @@ final class Hashes {
     private Hashes() {
     }
 
-    static final Hash NULL = new Hash(0L, 0L);
-
     private static final String PADDING = "==";
 
     private static final int DIGEST_LEN = 22;

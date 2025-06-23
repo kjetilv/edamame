@@ -19,6 +19,12 @@ public record Hash(long l0, long l1) {
         return Hashes.toBytes(new long[] {l0, l1});
     }
 
+    boolean isNull() {
+        return this == NULL || this.l0 == 0L && this.l1 == 0L;
+    }
+
+    static final Hash NULL = new Hash(0L, 0L);
+
     private static final String LPAR = "⟨";
 
     private static final String RPAR = "⟩";

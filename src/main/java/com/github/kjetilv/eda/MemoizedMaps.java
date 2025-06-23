@@ -3,7 +3,7 @@ package com.github.kjetilv.eda;
 import java.util.Map;
 
 /**
- * Provides access to memoized maps.
+ * Provides access to memoized maps after {@link MapsMemoizer#complete() completion}.
  *
  * @param <I> Id type, used to identify maps
  * @param <K> Key type, used as keys in stored maps
