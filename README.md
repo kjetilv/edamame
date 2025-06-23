@@ -1,38 +1,31 @@
 # edamame
 
-The _EDA MAp MEmoizer_ is a simple in-memory holder for JSON-like data – in general: maps and lists of
-maps and lists, with primitive leaves – which takes advantage of shared substructures to save memory.
+The eda-maps-memoizer is a simple in-memory holder for JSON-like data. JSON-like means the data is represented as
+maps and lists of maps and lists, with primitive leaves.
 
-It is intended for cases where many objects of the same type are in play, and they often share data. To save memory, one
-would usually identify these substructures on a logical level, and normalize the
-domain model accordingly.
+It is intended for cases where we are dealing with many objects of the same type, with lots of shared data. edamame
+takes advantage of shared substructures to save memory, and can thus hold a larger number of objects.
 
-edamame handles this normalizing on a tree-node level, provided the data can be represented as JSON-like data: Simple
-maps and lists of maps and lists, with primitive leaeves.
+## Implementation Notes
 
-Therefore, memory savings are found and exploited automtically, while the application logic is able to deal with a fully
-denormalized document, without having to fiddle with refs or foreign key-like pointers.
+### Data forms
 
-## Philosophy
+Data in this context means generic trees in the form of nested Java maps and lists (`Map<?, ?>`, `Iterable<?>` ) with
+`String`-like keys and primitive leaves – just like a sensible JSON library will be able to produce.
 
-Data is data. For us, a piece of data is something that is JSON-like: It's a map, or a list, or something else. Lists
-and maps contain other pieces of data.
+### Strategy
 
-## Implementation strategy
-
-As one would expect, edamame performs hashing of nodes to identify duplicate substructures. We use MD5. It may not
-be the cryptographical bee's knees any more, but those 128 bites will likely keep your trees separate. And if they
-don't, edamame is hip to it and falls back to a simple key-value strategy.
+As one would expect, edamame performs hashing of nodes to identify duplicate substructures. We use MD5 for this – it may
+not be the cryptographical bee's knees any more, but 128 bits will likely keep your data part. If they don't, edamame
+detects it and falls back to a simple key-value strategy for any data that collides.
 
 ## Caveats
 
 ### Data forms
 
-Currently, only Java `Map<?,?>` and `Iterable<?>` types are supported. Jackson's tree nodes may be supported next.
-
 Leaf nodes should be primitives – strings, numbers, BigDecimals, BigIntegers, booleans – but they can really be
-anything that implements equals/hashCode. If you put your rich domain model POJO in there, edamame will use its
-hashCode. 
+anything that implements equals/hashCode. If you put your rich domain model POJOs in there, edamame will use their
+`hashCode()`.
 
 ### Immutability
 
