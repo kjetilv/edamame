@@ -35,4 +35,9 @@ public interface KeyNormalizer<K> {
      * @return A K instance
      */
     K toKey(Object key);
+
+    @SuppressWarnings("unchecked")
+    static <K> KeyNormalizer<K> defaultNormalizer() {
+        return key -> (K) key.toString();
+    }
 }

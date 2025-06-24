@@ -96,10 +96,8 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     }
 
     private boolean put(I identifier, Map<?, ?> value, boolean failOnConflict) {
-        Map<K, Object> normalized = normalized(
-            requireNonNull(identifier, "identifier"),
-            requireNonNull(value, "value")
-        );
+        requireNonNull(identifier, "identifier");
+        Map<K, Object> normalized = normalized(requireNonNull(value, "value"));
         try {
             return withLock(
                 lock.writeLock(),
@@ -117,9 +115,10 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                 : null;
     }
 
+    @SuppressWarnings("unused")
     private boolean doPut(I identifier, Map<K, Object> value, boolean failOnConflict) {
         if (memoized.containsKey(identifier)) {
-            if (failOnConflict && !sameValue(identifier, value)) {
+            if (failOnConflict && !sameOrNull(get(identifier), value)) {
                 throw new IllegalArgumentException("Identifier " + identifier + " was:" + get(identifier));
             }
             return false;
@@ -133,11 +132,6 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             }
         }
         return true;
-    }
-
-    private boolean sameValue(I identifier, Map<K, Object> value) {
-        Map<K, ?> existing = get(identifier);
-        return existing == null || existing.equals(value);
     }
 
     private MapsMemoizerImpl<I, K> doComplete() {
@@ -173,9 +167,8 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                (complete.get() ? "completed" : "working maps:" + canonicalMaps.size());
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<K, Object> normalized(I identifier, Map<?, ?> value) {
-        return Maps.normalizeIdentifiers((Map<Object, Object>) Maps.clean(value), keyNormalizer);
+    private Map<K, Object> normalized(Map<?, ?> value) {
+        return Maps.normalizeIdentifiers(Maps.clean(value), keyNormalizer);
     }
 
     /**
@@ -255,6 +248,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
         return hb.get();
     }
 
+    @SuppressWarnings("unused")
     private Object canonicalMap(HashedTree tree) {
         return tree == null
             ? NULL

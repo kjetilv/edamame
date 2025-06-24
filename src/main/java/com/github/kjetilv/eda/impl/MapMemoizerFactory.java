@@ -28,7 +28,7 @@ public final class MapMemoizerFactory {
     static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> normalizer, LeafHasher hasher) {
         return new MapsMemoizerImpl<>(
             HASH_BUILDER_SUPPLIER,
-            normalizer == null ? defaultNormalizer() : normalizer,
+            normalizer == null ? KeyNormalizer.defaultNormalizer() : normalizer,
             hasher == null ? DEFAULT_HASHER : hasher
         );
     }
@@ -37,16 +37,11 @@ public final class MapMemoizerFactory {
     }
 
     private static final Supplier<HashBuilder<byte[]>> HASH_BUILDER_SUPPLIER =
-        () -> new DigestiveHashBuilder<>(new ByteDigest());
+        () -> DigestiveHashBuilder.create(new ByteDigest());
 
     private static final ToIntFunction<Object> ANY_HASH =
         Object::hashCode;
 
     private static final LeafHasher DEFAULT_HASHER =
         new DefaultLeafHasher(HASH_BUILDER_SUPPLIER, ANY_HASH);
-
-    @SuppressWarnings("unchecked")
-    private static <K> KeyNormalizer<K> defaultNormalizer() {
-        return key -> (K) key.toString();
-    }
 }

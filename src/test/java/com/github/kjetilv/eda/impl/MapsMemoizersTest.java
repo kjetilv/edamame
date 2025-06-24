@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MapsMemoizersTest {
 
     static HashBuilder<byte[]> md5HashBuilder() {
-        return new DigestiveHashBuilder<>(new ByteDigest());
+        return DigestiveHashBuilder.create(new ByteDigest());
     }
 
     @Test
@@ -507,7 +507,7 @@ class MapsMemoizersTest {
     }
 
     private static Hash randomHash() {
-        return new DigestiveHashBuilder<byte[]>(new ByteDigest())
+        return DigestiveHashBuilder.create(new ByteDigest())
             .<String>map(String::getBytes)
             .hash(UUID.randomUUID().toString()).get();
     }

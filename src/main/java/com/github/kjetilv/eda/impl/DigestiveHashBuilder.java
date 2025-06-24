@@ -10,14 +10,13 @@ final class DigestiveHashBuilder<T> implements HashBuilder<T> {
 
     private final Function<T, Stream<byte[]>> toBytes;
 
-    DigestiveHashBuilder(ByteDigest byteDigest) {
-        this(byteDigest, null);
+    static DigestiveHashBuilder<byte[]> create(ByteDigest byteDigest) {
+        return new DigestiveHashBuilder<>(byteDigest, Stream::of);
     }
 
-    @SuppressWarnings("unchecked")
     private DigestiveHashBuilder(ByteDigest byteDigest, Function<T, Stream<byte[]>> toBytes) {
         this.byteDigest = Objects.requireNonNull(byteDigest, "byteDigest");
-        this.toBytes = toBytes == null ? (Function<T, Stream<byte[]>>) IDENTITY : toBytes;
+        this.toBytes = Objects.requireNonNull(toBytes, "toBytes");
     }
 
     @Override
@@ -35,8 +34,6 @@ final class DigestiveHashBuilder<T> implements HashBuilder<T> {
     public <R> HashBuilder<R> map(Function<R, T> transform) {
         return new DigestiveHashBuilder<>(byteDigest, transform.andThen(toBytes));
     }
-
-    private static final Function<byte[], Stream<byte[]>> IDENTITY = Stream::of;
 
     @Override
     public String toString() {

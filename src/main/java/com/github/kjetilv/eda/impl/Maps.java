@@ -11,6 +11,7 @@ import java.util.stream.StreamSupport;
 import static java.lang.Math.ceil;
 import static java.util.Objects.requireNonNull;
 
+@SuppressWarnings("unchecked")
 final class Maps {
 
     static <K, V> Map<K, V> sizedMap(int size) {
@@ -23,11 +24,10 @@ final class Maps {
      * @param map Map
      * @return Map with blanks removed
      */
-    static Map<?, ?> clean(Map<?, ?> map) {
-        return cleanMap(requireNonNull(map, "map"));
+    static Map<Object, Object> clean(Map<?, ?> map) {
+        return cleanMap(requireNonNull((Map<Object, Object>) map, "map"));
     }
 
-    @SuppressWarnings("unchecked")
     static <K, T> Map<K, Object> normalizeIdentifiers(Map<T, Object> map, KeyNormalizer<K> keyNormalizer) {
         return (Map<K, Object>) rewriteMap(keyNormalizer, requireNonNull(map, "map"));
     }
@@ -46,7 +46,7 @@ final class Maps {
     private Maps() {
     }
 
-    private static final int MAX_POWER_OF_TWO = 1 << (Integer.SIZE - 2);
+    private static final int MAX_POWER_OF_TWO = 1 << Integer.SIZE - 2;
 
     private static int capacity(int expectedSize) {
         return expectedSize < 3 ? expectedSize + 1
@@ -58,14 +58,13 @@ final class Maps {
         return toMap(map.entrySet()
             .stream()
             .filter(Maps::hasData)
-            .map(Maps::pruneEntry)
-        );
+            .map(Maps::pruneEntry));
     }
 
     private static Object cleanObject(Object value) {
         return value == null ? null
             : switch (value) {
-                case Map<?, ?> map -> clean(map);
+                case Map<?, ?> map -> cleanMap(map);
                 case Iterable<?> iterable -> stream(iterable)
                     .map(Maps::cleanObject)
                     .toList();
@@ -87,10 +86,7 @@ final class Maps {
         };
     }
 
-    private static <K> Map<K, ?> rewriteMap(
-        KeyNormalizer<K> keyNormalizer,
-        Map<?, ?> map
-    ) {
+    private static <K> Map<K, ?> rewriteMap(KeyNormalizer<K> keyNormalizer, Map<?, ?> map) {
         return toMap(map.entrySet()
             .stream()
             .map(entry ->
@@ -100,10 +96,7 @@ final class Maps {
                 )));
     }
 
-    private static <K> Object rewriteObject(
-        Object value,
-        KeyNormalizer<K> keyNormalizer
-    ) {
+    private static <K> Object rewriteObject(Object value, KeyNormalizer<K> keyNormalizer) {
         return value == null ? null
             : switch (value) {
                 case Map<?, ?> map -> rewriteMap(keyNormalizer, map);
