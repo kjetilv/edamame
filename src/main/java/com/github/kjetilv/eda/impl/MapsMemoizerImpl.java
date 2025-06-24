@@ -101,11 +101,10 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             requireNonNull(value, "value")
         );
         try {
-            return withLock(lock.writeLock(), () -> doPut(
-                identifier,
-                normalized,
-                failOnConflict
-            ));
+            return withLock(
+                lock.writeLock(),
+                () -> doPut(identifier, normalized, failOnConflict)
+            );
         } catch (Exception e) {
             throw new IllegalStateException(this + " failed to insert " + identifier, e);
         }
@@ -120,8 +119,8 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     private boolean doPut(I identifier, Map<K, Object> value, boolean failOnConflict) {
         if (memoized.containsKey(identifier)) {
-            if (failOnConflict) {
-                throw new IllegalArgumentException("Identifier " + identifier + " already in use");
+            if (failOnConflict && !sameValue(identifier, value)) {
+                throw new IllegalArgumentException("Identifier " + identifier + " was:" + get(identifier));
             }
             return false;
         }
@@ -134,6 +133,11 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             }
         }
         return true;
+    }
+
+    private boolean sameValue(I identifier, Map<K, Object> value) {
+        Map<K, ?> existing = get(identifier);
+        return existing == null || existing.equals(value);
     }
 
     private MapsMemoizerImpl<I, K> doComplete() {
@@ -193,24 +197,24 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     }
 
     @SuppressWarnings("unchecked")
-    private HashedTree hashedTree(Object object) {
-        return object == null
+    private HashedTree hashedTree(Object value) {
+        return value == null
             ? NULL
-            : switch (object) {
+            : switch (value) {
                 case Map<?, ?> map -> hashedMap((Map<K, Object>) map);
                 case Iterable<?> iterable -> hashedNodes(iterable);
-                default -> object.getClass().isArray()
-                    ? hashedNodes(iterable(object))
-                    : hashedLeaf(object);
+                default -> value.getClass().isArray()
+                    ? hashedNodes(iterable(value))
+                    : hashedLeaf(value);
             };
     }
 
-    private HashedTree hashedLeaf(Object object) {
-        Hash hash = leafHasher.hash(object);
-        Object existing = canonicalLeaves.putIfAbsent(hash, object);
-        return existing == null || existing.equals(object)
-            ? new Leaf(hash, object)
-            : new Collision(hash, existing, object);
+    private HashedTree hashedLeaf(Object value) {
+        Hash hash = leafHasher.hash(value);
+        Object existing = canonicalLeaves.putIfAbsent(hash, value);
+        return sameOrNull(existing, value)
+            ? new Leaf(hash, value)
+            : new Collision(hash, existing, value);
     }
 
     private HashedTree resolveCanonical(Map<K, Object> map, Map<K, HashedTree> hashedMap) {
@@ -220,7 +224,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             __ ->
                 transformMap(hashedMap, this::canonicalMap)
         );
-        return existing == null || existing.equals(map)
+        return sameOrNull(existing, map)
             ? new Node(hash)
             : new Collision(hash, existing, map);
     }
@@ -297,6 +301,10 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             list.add(Array.get(object, i));
         }
         return list;
+    }
+
+    private static boolean sameOrNull(Object existing, Object value) {
+        return existing == null || existing.equals(value);
     }
 
     private static <K> BinaryOperator<Map<K, Object>> noMerge() {

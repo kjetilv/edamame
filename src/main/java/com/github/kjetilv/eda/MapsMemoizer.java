@@ -33,7 +33,7 @@ public interface MapsMemoizer<I, K> extends MemoizedMaps<I, K> {
      * @param value      Map
      * @throws IllegalStateException If this instance is {@link #complete()}
      * @throws IllegalArgumentException If the identifier is already stored
-     * @return true iff the map was added
+     * @return true iff the map was added.  If false, the memoizer was unchanged
      */
     boolean putIfAbsent(I identifier, Map<?, ?> value);
 
