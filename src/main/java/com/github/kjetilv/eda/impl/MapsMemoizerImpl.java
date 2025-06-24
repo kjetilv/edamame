@@ -88,11 +88,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     @Override
     public Map<K, ?> get(I identifier) {
         requireNonNull(identifier, "identifier");
-        Map<K, Object> map = withLock(lock.readLock(), () -> doGet(identifier));
-        if (map == null) {
-            throw new IllegalStateException(this + " missing value for " + identifier);
-        }
-        return map;
+        return withLock(lock.readLock(), () -> doGet(identifier));
     }
 
     @Override

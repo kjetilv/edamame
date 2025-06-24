@@ -13,7 +13,6 @@ public interface MemoizedMaps<I, K> {
     /**
      * @param identifier Identifier
      * @return Stored map, or null of the identifier was unknown
-     * @throws IllegalArgumentException If the identifier was unknown
      */
     Map<K, ?> get(I identifier);
 }
