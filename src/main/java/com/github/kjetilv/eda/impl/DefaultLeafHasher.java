@@ -83,7 +83,10 @@ final class DefaultLeafHasher implements LeafHasher {
         Object object,
         ToIntFunction<Object> anyHash
     ) {
-        return hb.hash(Hashes.bytes(anyHash.applyAsInt(object.getClass())));
+        hb.<Integer>map(Hashes::bytes)
+            .hash(System.identityHashCode(object.getClass()))
+            .hash(anyHash.applyAsInt(object));
+        return hb;
     }
 
     private static HashBuilder<byte[]> hashString(HashBuilder<byte[]> hb, String string) {

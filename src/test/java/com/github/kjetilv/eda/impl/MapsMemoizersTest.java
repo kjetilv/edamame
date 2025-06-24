@@ -69,6 +69,53 @@ class MapsMemoizersTest {
     }
 
     @Test
+    void shouldHandlePojos() {
+        Object l1 = new Leaf(42L, "123.234");
+        Object l2 = new Leaf(34L, "424242");
+
+        MapsMemoizer<Long, String> mapsMemoizer = create(null);
+
+        mapsMemoizer.put(
+            42L, Map.of(
+                "zot2", l1,
+                "zot1", l2
+            )
+        );
+        Object l1Copy = new Leaf(42L, "123.234");
+        Object l2Copy = new Leaf(34L, "424242");
+
+        mapsMemoizer.put(
+            43L, Map.of(
+                "zot2", l1Copy,
+                "zot1", l2Copy
+            )
+        );
+        MemoizedMaps<Long, String> access = mapsMemoizer.complete();
+
+        Map<String, ?> map42 = access.get(42L);
+        Map<String, ?> map43 = access.get(43L);
+
+        Object bi42 = map42.get("zot1");
+        Object bd42 = map42.get("zot2");
+
+        Object bi43 = map43.get("zot1");
+        Object bd43 = map43.get("zot2");
+
+        assertSame(l2, bi42);
+        assertEquals(l2, bi42);
+        assertSame(l1, bd42);
+        assertEquals(l1, bd42);
+
+        assertSame(l2, bi43);
+        assertEquals(l2, bi43);
+        assertSame(l1, bd43);
+        assertEquals(l1, bd43);
+
+//        assertSame(bd, access.get(43L).get("zot1"));
+//        assertSame(bi, access.get(43L).get("zot2"));
+    }
+
+    @Test
     void shouldHandleCollisions() {
         Hash collider = randomHash();
         LeafHasher leafHasher = leaf ->

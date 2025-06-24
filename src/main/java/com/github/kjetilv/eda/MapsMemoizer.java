@@ -17,13 +17,25 @@ import java.util.Map;
 public interface MapsMemoizer<I, K> extends MemoizedMaps<I, K> {
 
     /**
-     * Store one map.
+     * Store one map
      *
      * @param identifier Identifier
      * @param value      Map
      * @throws IllegalStateException If this instance is {@link #complete()}
+     * @throws IllegalArgumentException If the identifier is already stored
      */
     void put(I identifier, Map<?, ?> value);
+
+    /**
+     * Store one map, unless it's already stored
+     *
+     * @param identifier Identifier
+     * @param value      Map
+     * @throws IllegalStateException If this instance is {@link #complete()}
+     * @throws IllegalArgumentException If the identifier is already stored
+     * @return true iff the map was added
+     */
+    boolean putIfAbsent(I identifier, Map<?, ?> value);
 
     /**
      * Signals the end of {@link #put(Object, Map) putting} activities.  Locks down this instance

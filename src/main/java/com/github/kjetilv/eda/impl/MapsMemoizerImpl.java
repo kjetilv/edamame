@@ -74,15 +74,12 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     @Override
     public void put(I identifier, Map<?, ?> value) {
-        Map<K, Object> normalized = normalized(
-            requireNonNull(identifier, "identifier"),
-            requireNonNull(value, "value")
-        );
-        try {
-            withLock(lock.writeLock(), () -> doPut(identifier, normalized));
-        } catch (Exception e) {
-            throw new IllegalStateException(this + " failed to insert " + identifier, e);
-        }
+        put(identifier, value, true);
+    }
+
+    @Override
+    public boolean putIfAbsent(I identifier, Map<?, ?> value) {
+        return put(identifier, value, false);
     }
 
     @Override
@@ -98,6 +95,22 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             : this;
     }
 
+    private boolean put(I identifier, Map<?, ?> value, boolean failOnConflict) {
+        Map<K, Object> normalized = normalized(
+            requireNonNull(identifier, "identifier"),
+            requireNonNull(value, "value")
+        );
+        try {
+            return withLock(lock.writeLock(), () -> doPut(
+                identifier,
+                normalized,
+                failOnConflict
+            ));
+        } catch (Exception e) {
+            throw new IllegalStateException(this + " failed to insert " + identifier, e);
+        }
+    }
+
     private Map<K, Object> doGet(I identifier) {
         Hash hash = memoized.get(requireNonNull(identifier, "identifier"));
         return hash != null ? canonicalMaps.get(hash)
@@ -105,7 +118,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                 : null;
     }
 
-    private Object doPut(I identifier, Map<K, Object> value) {
+    private boolean doPut(I identifier, Map<K, Object> value, boolean failOnConflict) {
+        if (memoized.containsKey(identifier)) {
+            if (failOnConflict) {
+                throw new IllegalArgumentException("Identifier " + identifier + " already in use");
+            }
+            return false;
+        }
         switch (hashedMap(value)) {
             case Collision __ -> overflows.put(identifier, value);
             case HashedTree node -> {
@@ -114,7 +133,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                 memoizedHashes.add(hash);
             }
         }
-        return null;
+        return true;
     }
 
     private MapsMemoizerImpl<I, K> doComplete() {
@@ -191,7 +210,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
         Object existing = canonicalLeaves.putIfAbsent(hash, object);
         return existing == null || existing.equals(object)
             ? new Leaf(hash, object)
-            : new Collision(hash);
+            : new Collision(hash, existing, object);
     }
 
     private HashedTree resolveCanonical(Map<K, Object> map, Map<K, HashedTree> hashedMap) {
@@ -201,11 +220,9 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             __ ->
                 transformMap(hashedMap, this::canonicalMap)
         );
-        if (existing == null || existing.equals(map)) {
-            memoizedHashes.add(hash);
-            return new Node(hash);
-        }
-        return new Collision(hash);
+        return existing == null || existing.equals(map)
+            ? new Node(hash)
+            : new Collision(hash, existing, map);
     }
 
     private K canonicalKey(K key) {
