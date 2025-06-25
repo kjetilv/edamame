@@ -3,6 +3,7 @@ package com.github.kjetilv.eda.impl;
 import com.github.kjetilv.eda.KeyNormalizer;
 import com.github.kjetilv.eda.MapsMemoizer;
 import com.github.kjetilv.eda.MemoizedMaps;
+import com.github.kjetilv.eda.PojoBytes;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
@@ -27,7 +28,7 @@ class MapsMemoizersTest {
         Object bi = new BigInteger("424242");
         LeafHasher leafHasher = collidingLeafHasher();
 
-        MapsMemoizer<Long, String> mapsMemoizer = create(null, leafHasher);
+        MapsMemoizer<Long, String> mapsMemoizer = create(null, null, leafHasher);
 
         mapsMemoizer.put(
             42L, Map.of(
@@ -73,7 +74,7 @@ class MapsMemoizersTest {
         Object l1 = new Leaf(42L, "123.234");
         Object l2 = new Leaf(34L, "424242");
 
-        MapsMemoizer<Long, String> mapsMemoizer = create(null);
+        MapsMemoizer<Long, String> mapsMemoizer = mapsMemoizer();
 
         mapsMemoizer.put(
             42L, Map.of(
@@ -115,6 +116,10 @@ class MapsMemoizersTest {
 //        assertSame(bi, access.get(43L).get("zot2"));
     }
 
+    private static MapsMemoizer<Long, String> mapsMemoizer() {
+        return create(null, null);
+    }
+
     @Test
     void shouldHandleCollisions() {
         Hash collider = randomHash();
@@ -123,9 +128,9 @@ class MapsMemoizersTest {
                 ? collider
                 : new DefaultLeafHasher(
                     MapsMemoizersTest::md5HashBuilder,
-                    Object::hashCode
+                    PojoBytes.HASHCODE
                 ).hash(leaf);
-        MapsMemoizer<Long, String> cache = create(null, leafHasher);
+        MapsMemoizer<Long, String> cache = create(null, null, leafHasher);
 
         for (int i = 0; i < 10; i++) {
             cache.put((long) i, Map.of("foo", String.valueOf(i)));
@@ -233,7 +238,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldStripBlankData() {
-        MapsMemoizer<Long, String> cache = create(null);
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
 
         cache.put(
             42L,
@@ -303,7 +308,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldIgnoreKeyOrder() {
-        MapsMemoizer<Long, String> cache = create(null);
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
 
         cache.put(
             42L,
@@ -323,7 +328,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldPreserveListOrder() {
-        MapsMemoizer<Long, String> cache = create(null);
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
 
         cache.put(
             42L,
@@ -349,7 +354,7 @@ class MapsMemoizersTest {
     @SuppressWarnings({"TextBlockMigration", "unchecked", "StringOperationCanBeSimplified"})
     @Test
     void shouldGrudginglyAcceptNullsInLists() {
-        MapsMemoizer<Long, String> cache = create(null);
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
 
         List<String> canonicalList = Arrays.asList("1", null, "a");
         cache.put(
@@ -387,7 +392,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldPreserveIdentities() {
-        MapsMemoizer<Long, String> cache = create(null);
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
         Map<String, Object> in43 = Map.of(
@@ -475,7 +480,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldCanonicalizeLeaves() {
-        MapsMemoizer<Long, String> cache = create(null);
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
 
         BigDecimal bd = new BigDecimal("123.234");
         BigInteger bi = new BigInteger("424242");

@@ -1,6 +1,8 @@
 package com.github.kjetilv.eda;
 
 /**
+ * Strategy interface for canonicalizing keys.
+ * <P>
  * Most of the time, maps will have {@link String} keys, or at least some key type which has
  * a natural projection onto {@link String}. In this case, use
  * {@link MapsMemoizers#create() the default memoizer}.

@@ -1,5 +1,7 @@
 package com.github.kjetilv.eda.impl;
 
+import com.github.kjetilv.eda.PojoBytes;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.*;
@@ -12,29 +14,28 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
-import java.util.function.ToIntFunction;
 
 final class DefaultLeafHasher implements LeafHasher {
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;
 
-    private final ToIntFunction<Object> anyHash;
+    private final PojoBytes pojoBytes;
 
-    DefaultLeafHasher(Supplier<HashBuilder<byte[]>> newBuilder, ToIntFunction<Object> anyHash) {
+    DefaultLeafHasher(Supplier<HashBuilder<byte[]>> newBuilder, PojoBytes pojoBytes) {
         this.newBuilder = Objects.requireNonNull(newBuilder, "newBuilder");
-        this.anyHash = Objects.requireNonNull(anyHash, "anyHash");
+        this.pojoBytes = Objects.requireNonNull(pojoBytes, "leafBytes");
     }
 
     @Override
     public Hash hash(Object leaf) {
         HashBuilder<byte[]> hb = newBuilder.get();
-        return hashAny(hb, leaf, anyHash).get();
+        return hashAny(hb, leaf, pojoBytes).get();
     }
 
     private static HashBuilder<byte[]> hashAny(
         HashBuilder<byte[]> hb,
         Object leaf,
-        ToIntFunction<Object> anyHash
+        PojoBytes anyHash
     ) {
         return switch (leaf) {
             case String s -> hashString(T.STRING.tag(hb), s);
@@ -55,7 +56,7 @@ final class DefaultLeafHasher implements LeafHasher {
             case Double d -> T.DOUBLE.tag(hb).hash(Hashes.bytes(Double.doubleToRawLongBits(d)));
             case Float f -> T.FLOAT.tag(hb).hash(Hashes.bytes(Float.floatToRawIntBits(f)));
             case Short s -> T.SHORT.tag(hb).hash(Hashes.bytes(s));
-            case Byte b -> T.BYTE.tag(hb).hash(new byte[] {(byte) (int) b});
+            case Byte b -> T.BYTE.tag(hb).hash(new byte[] { (byte) (int) b });
             default -> hashString(T.OTHER_NUMERIC.tag(hb), n.toString());
         };
     }
@@ -78,15 +79,10 @@ final class DefaultLeafHasher implements LeafHasher {
         };
     }
 
-    private static HashBuilder<byte[]> hashLeaf(
-        HashBuilder<byte[]> hb,
-        Object object,
-        ToIntFunction<Object> anyHash
-    ) {
-        hb.<Integer>map(Hashes::bytes)
-            .hash(System.identityHashCode(object.getClass()))
-            .hash(anyHash.applyAsInt(object));
-        return hb;
+    private static HashBuilder<byte[]> hashLeaf(HashBuilder<byte[]> hb, Object leaf, PojoBytes anyHash) {
+        return hb
+            .hash(hb.getClass().getName().getBytes())
+            .hash(anyHash.bytes(leaf));
     }
 
     private static HashBuilder<byte[]> hashString(HashBuilder<byte[]> hb, String string) {
@@ -145,7 +141,7 @@ final class DefaultLeafHasher implements LeafHasher {
         OTHER_TEMPORAL,
         UUID;
 
-        private final byte[] bytes = new byte[] {(byte) ordinal()};
+        private final byte[] bytes = { (byte) ordinal() };
 
         HashBuilder<byte[]> tag(HashBuilder<byte[]> hb) {
             return hb.hash(bytes);
