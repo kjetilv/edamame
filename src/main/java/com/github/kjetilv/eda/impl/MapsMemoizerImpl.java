@@ -254,7 +254,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             ? NULL
             : switch (tree) {
                 case Node node -> canonicalMaps.get(node.hash());
-                case Nodes(Hash ignored, List<HashedTree> values) -> values.stream()
+                case Nodes(Hash __, List<HashedTree> values) -> values.stream()
                     .map(this::canonicalMap)
                     .collect(Collectors.toList());
                 case Leaf(Hash hash, Object value) -> canonicalLeaves.getOrDefault(hash, value);
