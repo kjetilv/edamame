@@ -23,6 +23,13 @@ public final class MapMemoizerFactory {
     }
 
     /**
+     * @param pojoBytes@return Map memoizer
+     */
+    static <I, K> MapsMemoizer<I, K> create(PojoBytes pojoBytes) {
+        return create(null, pojoBytes, null);
+    }
+
+    /**
      * @param normalizer Key normalizer, null means default behaviour
      * @param pojoBytes  Leaf bytes
      *
@@ -30,13 +37,6 @@ public final class MapMemoizerFactory {
      */
     public static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> normalizer, PojoBytes pojoBytes) {
         return create(normalizer, pojoBytes, null);
-    }
-
-    /**
-     * @param pojoBytes@return Map memoizer
-     */
-    static <I, K> MapsMemoizer<I, K> create(PojoBytes pojoBytes) {
-        return create(null, pojoBytes, null);
     }
 
     /**
