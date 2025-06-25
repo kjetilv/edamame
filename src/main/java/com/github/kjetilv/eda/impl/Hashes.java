@@ -1,13 +1,18 @@
 package com.github.kjetilv.eda.impl;
 
 import java.util.Base64;
+import java.util.UUID;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 final class Hashes {
 
     static Hash of(long[] ls) {
-        return new Hash(ls[0], ls[1]);
+        return of(ls[0], ls[1]);
+    }
+
+    public static Hash of(long l0, long l1) {
+        return new Hash(l0, l1);
     }
 
     static String digest(Hash hash) {
@@ -48,6 +53,12 @@ final class Hashes {
             bytes[8 + i] = (byte) (ls[1] >>> 8 * (7 - i));
         }
         return bytes;
+    }
+
+    static Hash random() {
+        return DigestiveHashBuilder.create(new ByteDigest())
+            .<String>map(String::getBytes)
+            .hash(UUID.randomUUID().toString()).get();
     }
 
     private Hashes() {

@@ -124,12 +124,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             return false;
         }
         switch (hashedMap(value)) {
-            case Collision __ -> overflows.put(identifier, value);
-            case HashedTree node -> {
+            case Node node -> {
                 Hash hash = node.hash();
                 memoized.put(identifier, hash);
                 memoizedHashes.add(hash);
             }
+            case Collision __ -> overflows.put(identifier, value);
+            case HashedTree tree -> throw new IllegalStateException("Unexpected non-node hashed tree: " + tree);
         }
         return true;
     }
@@ -172,25 +173,27 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     }
 
     /**
-     * @param map Map
+     * @param value Map
      * @return Hashed node for map, or null if a unique hash could not be obtained
      */
-    private HashedTree hashedMap(Map<K, Object> map) {
-        Map<K, HashedTree> hashedMap = transformMap(map, this::hashedTree);
-        return anyCollision(hashedMap.values()).orElseGet(() ->
-            resolveCanonical(map, hashedMap));
+    private HashedTree hashedMap(Map<K, Object> value) {
+        Map<K, HashedTree> hashedMap = mapChildren(value, this::toHashedTree);
+        return anyCollision(hashedMap.values())
+            .orElseGet(() ->
+                resolveCanonical(value, hashedMap));
     }
 
-    private HashedTree hashedNodes(Iterable<?> multiple) {
-        List<HashedTree> values = Maps.stream(multiple)
-            .map(this::hashedTree)
+    private HashedTree hashedNodes(Iterable<?> values) {
+        List<HashedTree> hashedValues = Maps.stream(values)
+            .map(this::toHashedTree)
             .toList();
-        return anyCollision(values).orElseGet(() ->
-            new Nodes(hashTrees(values), values));
+        return anyCollision(hashedValues)
+            .orElseGet(() ->
+                new Nodes(hashTrees(hashedValues), hashedValues));
     }
 
     @SuppressWarnings("unchecked")
-    private HashedTree hashedTree(Object value) {
+    private HashedTree toHashedTree(Object value) {
         return value == null
             ? NULL
             : switch (value) {
@@ -210,16 +213,16 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             : new Collision(hash, existing, value);
     }
 
-    private HashedTree resolveCanonical(Map<K, Object> map, Map<K, HashedTree> hashedMap) {
+    private HashedTree resolveCanonical(Map<K, Object> value, Map<K, HashedTree> hashedMap) {
         Hash hash = hashMap(hashedMap);
         Map<K, Object> existing = canonicalMaps.computeIfAbsent(
             hash,
             __ ->
-                transformMap(hashedMap, this::canonicalMap)
+                mapChildren(hashedMap, this::toCanonical)
         );
-        return sameOrNull(existing, map)
+        return sameOrNull(existing, value)
             ? new Node(hash)
-            : new Collision(hash, existing, map);
+            : new Collision(hash, existing, value);
     }
 
     private K canonicalKey(K key) {
@@ -249,13 +252,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
     }
 
     @SuppressWarnings("unused")
-    private Object canonicalMap(HashedTree tree) {
+    private Object toCanonical(HashedTree tree) {
         return tree == null
             ? NULL
             : switch (tree) {
                 case Node node -> canonicalMaps.get(node.hash());
                 case Nodes(Hash __, List<HashedTree> values) -> values.stream()
-                    .map(this::canonicalMap)
+                    .map(this::toCanonical)
                     .collect(Collectors.toList());
                 case Leaf(Hash hash, Object value) -> canonicalLeaves.getOrDefault(hash, value);
                 case Null __ -> null;
@@ -263,13 +266,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             };
     }
 
-    private <T, R> Map<K, R> transformMap(Map<K, T> map, Function<T, R> transform) {
+    private <T, R> Map<K, R> mapChildren(Map<K, T> map, Function<T, R> mapper) {
         return Maps.toMap(map.entrySet()
             .stream()
             .map(entry ->
                 Map.entry(
                     canonicalKey(entry.getKey()),
-                    transform.apply(entry.getValue())
+                    mapper.apply(entry.getValue())
                 )));
     }
 

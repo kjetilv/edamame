@@ -9,11 +9,14 @@ import org.junit.jupiter.api.Test;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.*;
+import java.time.chrono.MinguoEra;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.github.kjetilv.eda.impl.MapMemoizerFactory.create;
+import static java.util.Map.entry;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MapsMemoizersTest {
@@ -116,13 +119,9 @@ class MapsMemoizersTest {
 //        assertSame(bi, access.get(43L).get("zot2"));
     }
 
-    private static MapsMemoizer<Long, String> mapsMemoizer() {
-        return create(null, null);
-    }
-
     @Test
     void shouldHandleCollisions() {
-        Hash collider = randomHash();
+        Hash collider = Hashes.random();
         LeafHasher leafHasher = leaf ->
             leaf.equals("3") || leaf.equals("7")
                 ? collider
@@ -351,6 +350,31 @@ class MapsMemoizersTest {
         assertNotEquals(canon42, canon43);
     }
 
+    @Test
+    void shouldPreserveArrayOrder() {
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
+
+        cache.put(
+            42L,
+            Map.of(
+                "foo", IntStream.range(0, 10).mapToObj(String::valueOf)
+                    .toArray()
+            )
+        );
+        cache.put(
+            43L,
+            Map.of(
+                "foo", IntStream.range(0, 10)
+                    .map(i -> 9 - i).mapToObj(String::valueOf)
+                    .toArray()
+            )
+        );
+        MemoizedMaps<Long, String> access = cache.complete();
+        Map<String, ?> canon42 = access.get(42L);
+        Map<String, ?> canon43 = access.get(43L);
+        assertNotEquals(canon42, canon43);
+    }
+
     @SuppressWarnings({"TextBlockMigration", "unchecked", "StringOperationCanBeSimplified"})
     @Test
     void shouldGrudginglyAcceptNullsInLists() {
@@ -506,20 +530,46 @@ class MapsMemoizersTest {
         assertSame(bi, access.get(43L).get("zot1"));
     }
 
-    private static LeafHasher collidingLeafHasher() {
-        Hash collider = randomHash();
-        return leaf -> collider;
+    @Test
+    void shouldHandlePrimitives() {
+        Map<String, ? extends Comparable<? extends Comparable<?>>> map = Map.ofEntries(
+            entry("ldt", LocalDateTime.now()),
+            entry("ld", LocalDate.now()),
+            entry("e", MinguoEra.BEFORE_ROC),
+            entry("y", Year.of(2015)),
+            entry("ym", YearMonth.of(2015, Month.JUNE)),
+            entry("m", Month.APRIL),
+            entry("md", MonthDay.of(6, 28)),
+            entry("dow", DayOfWeek.FRIDAY),
+            entry("s", (short) 4),
+            entry("b", (byte) 2),
+            entry("d", 2.0),
+            entry("f", (float) 1.0),
+            entry("i", Instant.now()),
+            entry("odt", OffsetDateTime.now()),
+            entry("ot", OffsetTime.now()),
+            entry("uuid", UUID.randomUUID()),
+            entry("zdt", Instant.now().atZone(ZoneId.systemDefault()))
+        );
+
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
+
+        cache.put(42L, map);
+        assertEquals(map, cache.get(42L));
     }
 
-    private static Hash randomHash() {
-        return DigestiveHashBuilder.create(new ByteDigest())
-            .<String>map(String::getBytes)
-            .hash(UUID.randomUUID().toString()).get();
+    private static MapsMemoizer<Long, String> mapsMemoizer() {
+        return create(null, null);
+    }
+
+    private static LeafHasher collidingLeafHasher() {
+        Hash collider = Hashes.random();
+        return leaf -> collider;
     }
 
     private static Map<String, Object> map(IntStream intStream) {
         return intStream
-            .mapToObj(i -> Map.entry(String.valueOf(i), i))
+            .mapToObj(i -> entry(String.valueOf(i), i))
             .collect(
                 Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
