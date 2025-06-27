@@ -2,9 +2,8 @@ package com.github.kjetilv.eda.impl;
 
 import java.security.MessageDigest;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
-final class ByteDigest implements Consumer<byte[]>, Supplier<Hash> {
+final class ByteDigest implements Consumer<byte[]> {
 
     private final MessageDigest messageDigest;
 
@@ -17,8 +16,7 @@ final class ByteDigest implements Consumer<byte[]>, Supplier<Hash> {
         messageDigest.update(bytes);
     }
 
-    @Override
-    public Hash get() {
+    public Hash hash() {
         return Hashes.hash(messageDigest.digest());
     }
 

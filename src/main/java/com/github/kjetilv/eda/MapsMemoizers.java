@@ -30,19 +30,19 @@ public final class MapsMemoizers {
      *
      * @param <I>           Id type
      * @param <K>           Key type
-     * @param keyNormalizer Key normalizer
+     * @param keyHandler Key normalizer
      * @return Map memoizer
      */
-    public static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> keyNormalizer) {
-        return MapMemoizerFactory.create(keyNormalizer);
+    public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> keyHandler) {
+        return MapMemoizerFactory.create(keyHandler);
     }
 
     public static <I, K> MapsMemoizer<I, K> create(PojoBytes pojoBytes) {
         return create(null, pojoBytes);
     }
 
-    public static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> keyNormalizer, PojoBytes pojoBytes) {
-        return MapMemoizerFactory.create(keyNormalizer, pojoBytes);
+    public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> keyHandler, PojoBytes pojoBytes) {
+        return MapMemoizerFactory.create(keyHandler, pojoBytes);
     }
 
     private MapsMemoizers() {

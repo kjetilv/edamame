@@ -1,5 +1,5 @@
 package com.github.kjetilv.eda.impl;
-import com.github.kjetilv.eda.KeyNormalizer;
+import com.github.kjetilv.eda.KeyHandler;
 import com.github.kjetilv.eda.MapsMemoizer;
 import com.github.kjetilv.eda.PojoBytes;
 
@@ -14,12 +14,12 @@ public final class MapMemoizerFactory {
     /**
      * @param <I>           Id type
      * @param <K>           Key type
-     * @param keyNormalizer Key normalizer, null means default behaviour
+     * @param keyHandler Key normalizer, null means default behaviour
      *
      * @return Map memoizer
      */
-    public static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> keyNormalizer) {
-        return create(keyNormalizer, null);
+    public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> keyHandler) {
+        return create(keyHandler, null);
     }
 
     /**
@@ -35,7 +35,7 @@ public final class MapMemoizerFactory {
      *
      * @return Map memoizer
      */
-    public static <I, K> MapsMemoizer<I, K> create(KeyNormalizer<K> normalizer, PojoBytes pojoBytes) {
+    public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> normalizer, PojoBytes pojoBytes) {
         return create(normalizer, pojoBytes, null);
     }
 
@@ -47,14 +47,10 @@ public final class MapMemoizerFactory {
      *
      * @return Map memoizer
      */
-    static <I, K> MapsMemoizer<I, K> create(
-        KeyNormalizer<K> normalizer,
-        PojoBytes pojoBytes,
-        LeafHasher hasher
-    ) {
+    static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> normalizer, PojoBytes pojoBytes, LeafHasher hasher) {
         return new MapsMemoizerImpl<>(
             HASH_BUILDER_SUPPLIER,
-            normalizer == null ? KeyNormalizer.defaultNormalizer() : normalizer,
+            normalizer == null ? KeyHandler.defaultHandler() : normalizer,
             hasher == null
                 ? defaultLeafHasher(pojoBytes == null ? PojoBytes.HASHCODE : pojoBytes)
                 : hasher

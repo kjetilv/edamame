@@ -6,7 +6,8 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
- * Stateful interface for building hashes.
+ * Stateful interface for building hashes.  Bytes may be {@link #hash(Object) added} to the hash, before the value is
+ * {@link #get() fetched}.
  *
  * @param <T>
  */
@@ -25,6 +26,11 @@ interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Suppl
         return this;
     }
 
+    default HashBuilder<T> hash(Iterable<T> ts) {
+        ts.forEach(this);
+        return this;
+    }
+
     default HashBuilder<T> hash(Stream<T> ts) {
         ts.forEach(this);
         return this;
@@ -33,7 +39,7 @@ interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Suppl
     HashBuilder<T> hash(T t);
 
     /**
-     * Get the id, reset the underlying hasher.
+     * Get the hash and reset the underlying hasher
      *
      * @return Hash
      */
@@ -41,9 +47,12 @@ interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Suppl
     Hash get();
 
     /**
+     * Return a hasher that still updates this hash builder, but accepts {@link R} data and transforms its input
+     * to {@link T}
+     *
      * @param transform Transformer for R to T
      * @param <R>       Input type to new hasher
-     * @return New hasher that accepts and transforms its input to T
+     * @return New hasher that updates this hasher with {@link T} instances
      */
     <R> HashBuilder<R> map(Function<R, T> transform);
 }

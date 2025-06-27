@@ -6,13 +6,13 @@ import java.util.stream.Stream;
 
 final class DigestiveHashBuilder<T> implements HashBuilder<T> {
 
-    private final ByteDigest byteDigest;
-
-    private final Function<T, Stream<byte[]>> toBytes;
-
     static DigestiveHashBuilder<byte[]> create(ByteDigest byteDigest) {
         return new DigestiveHashBuilder<>(byteDigest, Stream::of);
     }
+
+    private final ByteDigest byteDigest;
+
+    private final Function<T, Stream<byte[]>> toBytes;
 
     private DigestiveHashBuilder(ByteDigest byteDigest, Function<T, Stream<byte[]>> toBytes) {
         this.byteDigest = Objects.requireNonNull(byteDigest, "byteDigest");
@@ -21,13 +21,14 @@ final class DigestiveHashBuilder<T> implements HashBuilder<T> {
 
     @Override
     public HashBuilder<T> hash(T t) {
-        toBytes.apply(t).forEach(byteDigest);
+        toBytes.apply(t)
+            .forEach(byteDigest);
         return this;
     }
 
     @Override
     public Hash get() {
-        return byteDigest.get();
+        return byteDigest.hash();
     }
 
     @Override

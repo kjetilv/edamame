@@ -1,6 +1,6 @@
 package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.KeyNormalizer;
+import com.github.kjetilv.eda.KeyHandler;
 import com.github.kjetilv.eda.MapsMemoizer;
 import com.github.kjetilv.eda.MemoizedMaps;
 import com.github.kjetilv.eda.PojoBytes;
@@ -143,8 +143,8 @@ class MapsMemoizersTest {
 
     @Test
     void shouldRespectCanonicalKeys() {
-        KeyNormalizer<CaKe> caKeKeyNormalizer = s -> CaKe.get(s.toString());
-        MapsMemoizer<Long, CaKe> cache = create(caKeKeyNormalizer, null);
+        KeyHandler<CaKe> caKeKeyHandler = s -> CaKe.get(s.toString());
+        MapsMemoizer<Long, CaKe> cache = create(caKeKeyHandler, null);
 
         Map<String, Object> in42 = build42(zot1Zot2());
         Map<String, ? extends Number> hh0hh1 = hh0hh1();
@@ -269,8 +269,8 @@ class MapsMemoizersTest {
 
     @Test
     void shouldStringify() {
-        KeyNormalizer<String> stringKeyNormalizer = s -> s.toString().intern();
-        MapsMemoizer<Long, String> cache = create(stringKeyNormalizer, null);
+        KeyHandler<String> stringKeyHandler = s -> s.toString().intern();
+        MapsMemoizer<Long, String> cache = create(stringKeyHandler, null);
 
         cache.put(
             42L,

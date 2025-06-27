@@ -8,7 +8,7 @@ class HashTest {
 
     @Test
     void testNull() {
-        assertEquals(Hash.NULL, Hashes.of(0l, 0l));
+        assertEquals(Hash.NULL, Hashes.of(0L, 0L));
     }
 
     @Test

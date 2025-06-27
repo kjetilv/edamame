@@ -2,6 +2,7 @@ package com.github.kjetilv.eda;
 
 import com.github.kjetilv.eda.impl.MapMemoizerFactory;
 
+@SuppressWarnings("unused")
 public interface PojoBytes {
 
     byte[] bytes(Object pojo);

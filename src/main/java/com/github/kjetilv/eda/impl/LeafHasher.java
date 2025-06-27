@@ -1,9 +1,9 @@
 package com.github.kjetilv.eda.impl;
 
-import com.github.kjetilv.eda.KeyNormalizer;
+import com.github.kjetilv.eda.KeyHandler;
 
 /**
- * Strategy for hashing leaves.  {@link MapMemoizerFactory#create(KeyNormalizer, LeafHasher)}  Overridable}
+ * Strategy for hashing leaves.  {@link MapMemoizerFactory#create(KeyHandler, LeafHasher)}  Overridable}
  * for testing purposes.
  */
 public interface LeafHasher {
