@@ -3,11 +3,11 @@ package com.github.kjetilv.eda.impl;
 import java.util.List;
 import java.util.Map;
 
-public interface CanonicalValue {
-
-    Object value();
+interface CanonicalValue {
 
     Null NULL = new Null();
+
+    Object value();
 
     record Node<K>(Map<K, Object> value) implements CanonicalValue {
     }
@@ -18,7 +18,7 @@ public interface CanonicalValue {
     record Leaf(Object value) implements CanonicalValue {
     }
 
-    record Collision<K>(Object value) implements CanonicalValue {
+    record Collision(Object value) implements CanonicalValue {
     }
 
     record Null() implements CanonicalValue {

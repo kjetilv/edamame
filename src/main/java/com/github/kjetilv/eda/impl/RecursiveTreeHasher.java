@@ -48,12 +48,6 @@ final class RecursiveTreeHasher<K> {
         return new Node<>(hash, hashedTrees);
     }
 
-    Nodes hashedList(List<Object> values) {
-        List<? extends HashedTree<?>> hashedList = mapValues(values, this::hashedTree);
-        Hash hash = hashForList(hashedList);
-        return new Nodes(hash, hashedList);
-    }
-
     @SuppressWarnings("unchecked")
     private HashedTree<?> hashedTree(Object value) {
         return value == null ? NULL : switch (value) {

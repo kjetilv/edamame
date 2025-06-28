@@ -111,7 +111,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
                         memoizedHashes.put(identifier, hashedTree.hash());
                         canonicalObjects.put(hashedTree.hash(), (Map<K, Object>) map);
                     }
-                    case CanonicalValue.Collision<?> __ -> overflowObjects.put(
+                    case CanonicalValue.Collision __ -> overflowObjects.put(
                         identifier,
                         hashedTree.unwrap()
                     );

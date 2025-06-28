@@ -12,7 +12,7 @@ import static com.github.kjetilv.eda.impl.CollectionUtils.mapValues;
  *
  * @param <T> Type of contents
  */
-public sealed interface HashedTree<T> {
+sealed interface HashedTree<T> {
 
     Null NULL = new Null();
 
@@ -43,7 +43,7 @@ public sealed interface HashedTree<T> {
      */
     record Nodes(Hash hash, List<? extends HashedTree<?>> values) implements HashedTree<List<? extends HashedTree<?>>> {
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"unchecked", "ClassEscapesDefinedScope"})
         @Override
         public List<? extends HashedTree<?>> unwrap() {
             return (List<? extends HashedTree<?>>) mapValues(values, HashedTree::unwrap);

@@ -89,7 +89,7 @@ final class CanonicalSubstructuresCataloguer<K> {
     private static <T> CanonicalValue canonical(T existing, T value, Function<T, CanonicalValue> wrap) {
         return existing == null ? wrap.apply(value)
             : existing.equals(value) ? wrap.apply(existing)
-                : new CanonicalValue.Collision<>(value);
+                : new CanonicalValue.Collision(value);
     }
 
     private static <K> Optional<CanonicalValue> collision(Map<K, CanonicalValue> canonicalValues) {
