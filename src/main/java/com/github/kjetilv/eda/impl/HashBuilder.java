@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 
 /**
  * Stateful interface for building hashes.  Bytes may be {@link #hash(Object) added} to the hash, before the value is
- * {@link #get() fetched}.
+ * {@link #get() fetched} at the end.
  *
  * @param <T>
  */

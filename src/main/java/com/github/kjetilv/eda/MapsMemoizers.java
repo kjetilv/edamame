@@ -22,15 +22,15 @@ public final class MapsMemoizers {
 
     /**
      * This method affords control over stored keys. Stored maps will be normalized to use {@link K}'s
-     * as map keys, on all levels. The {@code keyNormalizer} argument provides a callback that will
+     * as map keys, on all levels. The {@code keyHandler} argument provides a callback that will
      * produce {@link K} instances from keys in incoming maps.
      * <p>
      * Since {@link MapsMemoizer} accepts {@link Map Map<?, ?>}, this function needs to accept any
      * input, i.e. {@link Object ?}.
      *
-     * @param <I>           Id type
-     * @param <K>           Key type
-     * @param keyHandler Key normalizer
+     * @param <I>        Id type
+     * @param <K>        Key type
+     * @param keyHandler Key handler
      * @return Map memoizer
      */
     public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> keyHandler) {

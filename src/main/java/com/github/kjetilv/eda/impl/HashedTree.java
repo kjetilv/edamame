@@ -16,8 +16,16 @@ sealed interface HashedTree<T> {
 
     Null NULL = new Null();
 
+    /**
+     * @return The hash of this part of the tree
+     */
     Hash hash();
 
+    /**
+     * Get the original structure back
+     *
+     * @return Original structure
+     */
     T unwrap();
 
     /**
@@ -27,11 +35,15 @@ sealed interface HashedTree<T> {
      * @param valueMap Map
      * @param <K>      Type of key in the map
      */
-    record Node<K>(Hash hash, Map<K, ? extends HashedTree<?>> valueMap) implements HashedTree<Map<K, Object>> {
+    record Node<K>(Hash hash, Map<K, ? extends HashedTree<?>> valueMap)
+        implements HashedTree<Map<K, Object>> {
         @Override
 
         public Map<K, Object> unwrap() {
-            return mapTree(valueMap, HashedTree::unwrap);
+            return mapTree(
+                valueMap,
+                HashedTree::unwrap
+            );
         }
     }
 
@@ -41,12 +53,16 @@ sealed interface HashedTree<T> {
      * @param hash   Hash
      * @param values List
      */
-    record Nodes(Hash hash, List<? extends HashedTree<?>> values) implements HashedTree<List<? extends HashedTree<?>>> {
+    record Nodes(Hash hash, List<? extends HashedTree<?>> values)
+        implements HashedTree<List<? extends HashedTree<?>>> {
 
         @SuppressWarnings({"unchecked", "ClassEscapesDefinedScope"})
         @Override
         public List<? extends HashedTree<?>> unwrap() {
-            return (List<? extends HashedTree<?>>) mapValues(values, HashedTree::unwrap);
+            return (List<? extends HashedTree<?>>) mapValues(
+                values,
+                HashedTree::unwrap
+            );
         }
     }
 
@@ -56,7 +72,8 @@ sealed interface HashedTree<T> {
      * @param hash  Hash
      * @param value Leaf
      */
-    record Leaf(Hash hash, Object value) implements HashedTree<Object> {
+    record Leaf(Hash hash, Object value)
+        implements HashedTree<Object> {
 
         @Override
         public Object unwrap() {
@@ -67,7 +84,8 @@ sealed interface HashedTree<T> {
     /**
      * Null value, which may occur in a list. Has the {@link Hash#NULL null} hash.
      */
-    record Null() implements HashedTree<Void> {
+    record Null()
+        implements HashedTree<Void> {
 
         @Override
         public Hash hash() {

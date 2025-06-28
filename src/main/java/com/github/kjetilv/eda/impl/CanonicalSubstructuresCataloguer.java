@@ -5,13 +5,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import static com.github.kjetilv.eda.impl.CollectionUtils.mapTree;
 import static com.github.kjetilv.eda.impl.CollectionUtils.mapValues;
 
 /**
- * This class should be thread-safe, as it only appends to concurrent maps.
+ * Canonicalizes {@link HashedTree hashed trees}, progressively storing and resolving shared substructures
+ * as they appear.
+ * <p>
+ * This class ought to be thread-safe, as it only appends to {@link ConcurrentMap concurrent maps}.
  *
  * @param <K>
  */
@@ -24,9 +28,10 @@ final class CanonicalSubstructuresCataloguer<K> {
     private final Map<Hash, Object> leaves = new ConcurrentHashMap<>();
 
     /**
-     * Returns the canonical value. Traverses the {@link HashedTree hashed tree} and re-builds it.  New
-     * substructures found are stored under their respective {@link HashedTree#hash() hashes}.  If the
-     * hash is recorded from before, the first occurrence is retrieved to replaces the incoming one.
+     * Accepts a {@link HashedTree hashed tree} and returns the {@link CanonicalValue canonical value}.
+     * Traverses the {@link HashedTree hashed tree} and re-builds it.  New substructures found in incoming
+     * structures are recorded under their respective {@link HashedTree#hash() hashes}.  If the hash is
+     * recorded already, that occurrence is retrieved and used to replace the incoming one.
      *
      * @param hashedTree Hashed tree
      * @return A {@link CanonicalValue value} which may be either a {@link CanonicalValue.Collision collision},

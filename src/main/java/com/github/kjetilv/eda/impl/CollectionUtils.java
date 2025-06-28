@@ -13,6 +13,9 @@ import java.util.stream.StreamSupport;
 import static java.lang.Math.ceil;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Some collection-related nitty-gritty bits.
+ */
 @SuppressWarnings("unchecked")
 final class CollectionUtils {
 

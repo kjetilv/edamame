@@ -3,12 +3,12 @@ package com.github.kjetilv.eda;
 import java.util.Map;
 
 /**
- * The memoizer! Maps will be stored in canonical form, avoiding memory wasted on identical trees.
- * Extends {@link MemoizedMaps} to provide lookup of stored maps.
+ * Behold the memoizer! Maps will be stored in canonical form, avoiding memory wasted on identical
+ * trees. Also, extends {@link MemoizedMaps} to provide lookup of stored maps.
  * <p>
- * In cases where the set of maps is known and finite, the {@link #complete()} method can be invoked
- * after all data are inserted. This allows further savings by throwing away internal book-keeping
- * state and locking down the memoizer for further puts.
+ * In cases where the set of maps is known and finite, the {@link #complete() complete} method can
+ * be invoked after all data are inserted. This allows further savings by throwing away internal
+ * book-keeping state and locking down the memoizer for further puts.
  * <p>
  *
  * @param <I> Id type, used to identify maps
@@ -22,7 +22,7 @@ public interface MapsMemoizer<I, K> extends MemoizedMaps<I, K> {
      *
      * @param identifier Identifier
      * @param value      Map
-     * @throws IllegalStateException If this instance is {@link #complete()}
+     * @throws IllegalStateException    If this instance is {@link #complete()}
      * @throws IllegalArgumentException If the identifier is already stored
      */
     void put(I identifier, Map<?, ?> value);
@@ -32,9 +32,9 @@ public interface MapsMemoizer<I, K> extends MemoizedMaps<I, K> {
      *
      * @param identifier Identifier
      * @param value      Map
-     * @throws IllegalStateException If this instance is {@link #complete()}
-     * @throws IllegalArgumentException If the identifier is already stored
      * @return true iff the map was added.  If false, the memoizer was unchanged
+     * @throws IllegalStateException    If this instance is {@link #complete()}
+     * @throws IllegalArgumentException If the identifier is already stored
      */
     boolean putIfAbsent(I identifier, Map<?, ?> value);
 

@@ -25,6 +25,14 @@ class MapsMemoizersTest {
         return DigestiveHashBuilder.create(new ByteDigest());
     }
 
+    static Hash random() {
+        UUID randomUUID = UUID.randomUUID();
+        return Hash.of(
+            randomUUID.getMostSignificantBits(),
+            randomUUID.getLeastSignificantBits()
+        );
+    }
+
     @Test
     void shouldHandleLeafCollisions() {
         Object bd = new BigDecimal("123.234");
@@ -121,7 +129,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldHandleCollisions() {
-        Hash collider = Hashes.random();
+        Hash collider = random();
         LeafHasher leafHasher = leaf ->
             leaf.equals("3") || leaf.equals("7")
                 ? collider
@@ -563,7 +571,7 @@ class MapsMemoizersTest {
     }
 
     private static LeafHasher collidingLeafHasher() {
-        Hash collider = Hashes.random();
+        Hash collider = random();
         return leaf -> collider;
     }
 

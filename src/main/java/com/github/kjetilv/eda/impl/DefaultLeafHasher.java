@@ -15,6 +15,11 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+/**
+ * This default {@link LeafHasher leaf hasher} supports typical Java classes seen in trees.
+ *
+ * @see T
+ */
 final class DefaultLeafHasher implements LeafHasher {
 
     private final Supplier<HashBuilder<byte[]>> newBuilder;

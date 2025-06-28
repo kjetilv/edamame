@@ -26,7 +26,7 @@ final class RecursiveTreeHasher<K> {
 
     /**
      * @param newBuilder Hash builder, not null
-     * @param keyHandler Key normalizer, not null
+     * @param keyHandler Key handler, not null
      * @param leafHasher Hasher, not null
      * @see MapsMemoizers#create(KeyHandler)
      */
@@ -57,7 +57,8 @@ final class RecursiveTreeHasher<K> {
                 yield new Node<>(hashForMap(hashedMap), hashedMap);
             }
             case Iterable<?> iterable -> hashedValues(iterable);
-            default -> value.getClass().isArray() ? hashedValues(iterable(value))
+            default -> value.getClass().isArray()
+                ? hashedValues(iterable(value))
                 : hashedLeaf(value);
         };
     }

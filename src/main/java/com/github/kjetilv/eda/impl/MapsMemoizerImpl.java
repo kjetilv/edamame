@@ -21,7 +21,7 @@ import static java.util.Objects.requireNonNull;
  * Works by hashing nodes and leaves and storing them under their hashes. When structures and/or values
  * re-occur, they are replaced by the already registered, canonical instances.
  * <p>
- * MD5 (128-bit) hashes are used. If an incoming value provokes a hash collision, it is stored as-is,
+ * MD5 (128-bit) hashes are used. If an incoming value provokes a hash collision, it will be stored as-is and
  * separately from the canonical trees.  This should be rare.
  * <p>
  * Use {@link MapsMemoizers#create()} and siblings to create instances of this class.
@@ -51,14 +51,14 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     /**
      * @param newBuilder Hash builder, not null
-     * @param keyHandler Key normalizer, not null
+     * @param keyHandler Key handler, not null
      * @param leafHasher Hasher, not null
      * @see MapsMemoizers#create(KeyHandler)
      */
     MapsMemoizerImpl(Supplier<HashBuilder<byte[]>> newBuilder, KeyHandler<K> keyHandler, LeafHasher leafHasher) {
         this.recursiveTreeHasher = new RecursiveTreeHasher<>(newBuilder, keyHandler, leafHasher);
         this.canonicalSubstructuresCataloguer = new CanonicalSubstructuresCataloguer<>();
-        this.keyHandler = requireNonNull(keyHandler, "keyNormalizer");
+        this.keyHandler = requireNonNull(keyHandler, "key handler");
     }
 
     @Override

@@ -1,4 +1,5 @@
 package com.github.kjetilv.eda.impl;
+
 import com.github.kjetilv.eda.KeyHandler;
 import com.github.kjetilv.eda.MapsMemoizer;
 import com.github.kjetilv.eda.PojoBytes;
@@ -12,14 +13,22 @@ public final class MapMemoizerFactory {
     public static final PojoBytes TOSTRING = value -> value.toString().getBytes();
 
     /**
-     * @param <I>           Id type
-     * @param <K>           Key type
-     * @param keyHandler Key normalizer, null means default behaviour
-     *
+     * @param <I>        Id type
+     * @param <K>        Key type
+     * @param keyHandler Key handler, null means default behaviour
      * @return Map memoizer
      */
     public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> keyHandler) {
         return create(keyHandler, null);
+    }
+
+    /**
+     * @param handler   Key handler, null means default behaviour
+     * @param pojoBytes Leaf bytes
+     * @return Map memoizer
+     */
+    public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> handler, PojoBytes pojoBytes) {
+        return create(handler, pojoBytes, null);
     }
 
     /**
@@ -30,27 +39,16 @@ public final class MapMemoizerFactory {
     }
 
     /**
-     * @param normalizer Key normalizer, null means default behaviour
-     * @param pojoBytes  Leaf bytes
-     *
+     * @param <I>     Id type
+     * @param <K>     Key type
+     * @param handler Key handler, null means default behaviour
+     * @param hasher  Leaf hasher, for testing purposes
      * @return Map memoizer
      */
-    public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> normalizer, PojoBytes pojoBytes) {
-        return create(normalizer, pojoBytes, null);
-    }
-
-    /**
-     * @param <I>        Id type
-     * @param <K>        Key type
-     * @param normalizer Key normalizer, null means default behaviour
-     * @param hasher     Leaf hasher, for testing purposes
-     *
-     * @return Map memoizer
-     */
-    static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> normalizer, PojoBytes pojoBytes, LeafHasher hasher) {
+    static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> handler, PojoBytes pojoBytes, LeafHasher hasher) {
         return new MapsMemoizerImpl<>(
             HASH_BUILDER_SUPPLIER,
-            normalizer == null ? KeyHandler.defaultHandler() : normalizer,
+            handler == null ? KeyHandler.defaultHandler() : handler,
             hasher == null
                 ? defaultLeafHasher(pojoBytes == null ? PojoBytes.HASHCODE : pojoBytes)
                 : hasher

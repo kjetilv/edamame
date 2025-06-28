@@ -4,9 +4,20 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+/**
+ * Builds hashes using a {@link ByteDigest}
+ *
+ * @param <T> Input type
+ */
 final class DigestiveHashBuilder<T> implements HashBuilder<T> {
 
-    static DigestiveHashBuilder<byte[]> create(ByteDigest byteDigest) {
+    /**
+     * Starting point, taking byte arrays
+     *
+     * @param byteDigest Byte digest
+     * @return Hash builder
+     */
+    static HashBuilder<byte[]> create(ByteDigest byteDigest) {
         return new DigestiveHashBuilder<>(byteDigest, Stream::of);
     }
 

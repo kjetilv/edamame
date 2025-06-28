@@ -1,29 +1,19 @@
 package com.github.kjetilv.eda.impl;
 
 import java.util.Base64;
-import java.util.UUID;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
+/**
+ * Various {@link Hash hash}-related functions.
+ */
 final class Hashes {
-
-    public static Hash of(long l0, long l1) {
-        return new Hash(l0, l1);
-    }
-
-    static Hash of(long[] ls) {
-        return of(ls[0], ls[1]);
-    }
 
     static String digest(Hash hash) {
         byte[] bytes = new byte[16];
         longToBytes(hash.l0(), 0, bytes);
         longToBytes(hash.l1(), 8, bytes);
         return digest(bytes);
-    }
-
-    static Hash hash(byte[] bytes) {
-        return toHash(bytes);
     }
 
     static byte[] bytes(int i) {
@@ -55,14 +45,6 @@ final class Hashes {
         return bytes;
     }
 
-    static Hash random() {
-        UUID randomUUID = UUID.randomUUID();
-        return Hashes.of(
-            randomUUID.getMostSignificantBits(),
-            randomUUID.getLeastSignificantBits()
-        );
-    }
-
     private Hashes() {
     }
 
@@ -73,17 +55,6 @@ final class Hashes {
     private static final int RAW_LEN = DIGEST_LEN + PADDING.length();
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
-
-    private static Hash toHash(byte[] bytes) {
-        long[] ls = new long[2];
-        for (int i = 0; i < 8; i++) {
-            ls[0] <<= 8;
-            ls[0] |= bytes[i] & 0xFF;
-            ls[1] <<= 8;
-            ls[1] |= bytes[i + 8] & 0xFF;
-        }
-        return of(ls);
-    }
 
     private static String digest(byte[] bytes) {
         String base64 = new String(ENCODER.encode(bytes), ISO_8859_1);
