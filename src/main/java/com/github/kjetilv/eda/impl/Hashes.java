@@ -5,7 +5,7 @@ import java.util.Base64;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 /**
- * Various {@link Hash hash}-related functions.
+ * Various {@link Hash hash}-related functions
  */
 final class Hashes {
 

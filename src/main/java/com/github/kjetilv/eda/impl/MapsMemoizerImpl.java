@@ -29,7 +29,7 @@ import static java.util.Objects.requireNonNull;
  * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
-class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
+class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, KeyHandler<K> {
 
     private final Map<I, Hash> memoizedHashes = new HashMap<>();
 
@@ -43,11 +43,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
 
     private Map<Object, K> canonicalKeys = new ConcurrentHashMap<>();
 
+    private Map<K, byte[]> canonicalBytes = new ConcurrentHashMap<>();
+
     private RecursiveTreeHasher<K> recursiveTreeHasher;
 
     private CanonicalSubstructuresCataloguer<K> canonicalSubstructuresCataloguer;
 
-    private MapNormalizer<K> normalizer;
+    private final KeyHandler<K> keyHandler;
 
     /**
      * @param newBuilder Hash builder, not null
@@ -61,13 +63,13 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
         LeafHasher leafHasher
     ) {
         requireNonNull(keyHandler, "key handler");
+        this.keyHandler = keyHandler;
         this.recursiveTreeHasher = new RecursiveTreeHasher<>(
             requireNonNull(newBuilder, "newBuilder"),
-            keyHandler,
+            this,
             requireNonNull(leafHasher, "leafHasher")
         );
         this.canonicalSubstructuresCataloguer = new CanonicalSubstructuresCataloguer<>();
-        this.normalizer = new MapNormalizer<>(canonicalKeyhandler(keyHandler));
     }
 
     @Override
@@ -106,13 +108,22 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
             : this;
     }
 
+    @Override
+    public K normalize(Object key) {
+        return canonicalKeys.computeIfAbsent(key, keyHandler::normalize);
+    }
+
+    @Override
+    public byte[] bytes(K key) {
+        return canonicalBytes.computeIfAbsent(key, keyHandler::bytes);
+    }
+
     @SuppressWarnings({"unchecked", "unused"})
     private boolean put(I identifier, Map<?, ?> value, boolean failOnConflict) {
         if (complete.get()) {
             throw new IllegalStateException(this + " is complete, cannot put " + identifier);
         }
-        Map<K, Object> normalized = normalizer.normalize(value);
-        Node<K> hashedTree = recursiveTreeHasher.hashedMap(normalized);
+        Node<K> hashedTree = recursiveTreeHasher.hashedMap(value);
         CanonicalValue canonicalValue = canonicalSubstructuresCataloguer.canonical(hashedTree);
         return withWriteLock(() -> {
             if (shouldPut(identifier, failOnConflict)) {
@@ -132,16 +143,12 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K> {
         });
     }
 
-    private KeyHandler<K> canonicalKeyhandler(KeyHandler<K> keyHandler) {
-        return key -> canonicalKeys.computeIfAbsent(key, keyHandler::normalize);
-    }
-
     private MapsMemoizerImpl<I, K> doComplete() {
         // Shed working data
         this.recursiveTreeHasher = null;
         this.canonicalSubstructuresCataloguer = null;
-        this.normalizer = null;
         this.canonicalKeys = null;
+        this.canonicalBytes = null;
         return this;
     }
 

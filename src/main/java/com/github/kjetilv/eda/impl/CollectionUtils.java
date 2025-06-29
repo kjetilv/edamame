@@ -4,7 +4,7 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
-import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -16,10 +16,8 @@ import static java.lang.Math.ceil;
  */
 final class CollectionUtils {
 
-    static <K, V> Map<K, V> sizedMap(int size, IntFunction<? extends Map<K, V>> toMap) {
-        return toMap == null
-            ? new HashMap<>(capacity(size))
-            : toMap.apply(capacity(size));
+    static <K, V> Supplier<Map<K, V>> sizedMap(int size) {
+        return () -> new HashMap<>(capacity(size));
     }
 
     static <K, V, R> Map<K, R> mapTree(Map<K, V> map, Function<V, R> transform) {
@@ -29,7 +27,18 @@ final class CollectionUtils {
                 Map.Entry::getKey,
                 entry -> transform.apply(entry.getValue()),
                 noMerge(),
-                () -> sizedMap(map.size(), IdentityHashMap::new)
+                sizedMap(map.size())
+            )));
+    }
+
+    static <K, T, V, R> Map<K, R> mapTree(Map<T, V> map, Function<T, K> keyNormalizer, Function<V, R> transform) {
+        return Collections.unmodifiableMap(map.entrySet()
+            .stream()
+            .collect(Collectors.toMap(
+                entry -> keyNormalizer.apply(entry.getKey()),
+                entry -> transform.apply(entry.getValue()),
+                noMerge(),
+                sizedMap(map.size())
             )));
     }
 

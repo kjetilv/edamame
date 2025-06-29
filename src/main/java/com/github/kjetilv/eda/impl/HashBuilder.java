@@ -3,7 +3,6 @@ package com.github.kjetilv.eda.impl;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * Stateful interface for building hashes.  Bytes may be {@link #hash(Object) added} to the hash, before the value is
@@ -23,16 +22,6 @@ interface HashBuilder<T> extends Consumer<T>, Function<T, HashBuilder<T>>, Suppl
     @Override
     default HashBuilder<T> apply(T t) {
         accept(t);
-        return this;
-    }
-
-    default HashBuilder<T> hash(Iterable<T> ts) {
-        ts.forEach(this);
-        return this;
-    }
-
-    default HashBuilder<T> hash(Stream<T> ts) {
-        ts.forEach(this);
         return this;
     }
 

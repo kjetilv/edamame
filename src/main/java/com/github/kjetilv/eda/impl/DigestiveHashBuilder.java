@@ -32,8 +32,7 @@ final class DigestiveHashBuilder<T> implements HashBuilder<T> {
 
     @Override
     public HashBuilder<T> hash(T t) {
-        toBytes.apply(t)
-            .forEach(byteDigest);
+        toBytes.apply(t).forEach(byteDigest);
         return this;
     }
 

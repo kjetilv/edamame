@@ -252,7 +252,8 @@ class MapsMemoizersTest {
             Map.of(
                 "foo", "bar",
                 "zot", Collections.emptyList(),
-                "zip", Collections.emptyMap()
+                "zip", Collections.emptyMap(),
+                "arr", new int[0]
             )
         );
 
@@ -277,8 +278,7 @@ class MapsMemoizersTest {
 
     @Test
     void shouldStringify() {
-        KeyHandler<String> stringKeyHandler = s -> s.toString().intern();
-        MapsMemoizer<Long, String> cache = create(stringKeyHandler, null);
+        MapsMemoizer<Long, String> cache = create(Object::toString, null, null);
 
         cache.put(
             42L,

@@ -3,16 +3,20 @@ package com.github.kjetilv.eda.impl;
 import com.github.kjetilv.eda.KeyHandler;
 import com.github.kjetilv.eda.MapsMemoizers;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static com.github.kjetilv.eda.impl.CollectionUtils.*;
 import static com.github.kjetilv.eda.impl.HashedTree.*;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Builds {@link HashedTree hashed trees}. Stateless and thread-safe.
+ * Normalizes input trees and builds {@link HashedTree hashed trees}. Stateless and thread-safe.
+ * <p>
  *
  * @param <K> Identifier type
  */
@@ -30,7 +34,11 @@ final class RecursiveTreeHasher<K> {
      * @param leafHasher Hasher, not null
      * @see MapsMemoizers#create(KeyHandler)
      */
-    RecursiveTreeHasher(Supplier<HashBuilder<byte[]>> newBuilder, KeyHandler<K> keyHandler, LeafHasher leafHasher) {
+    RecursiveTreeHasher(
+        Supplier<HashBuilder<byte[]>> newBuilder,
+        KeyHandler<K> keyHandler,
+        LeafHasher leafHasher
+    ) {
         this.newBuilder = requireNonNull(newBuilder, "newBuilder");
         this.keyHandler = requireNonNull(keyHandler, "keyHandler");
         this.leafHasher = requireNonNull(leafHasher, "leafHasher");
@@ -42,33 +50,35 @@ final class RecursiveTreeHasher<K> {
      * @param value Map
      * @return Hashed tree
      */
-    Node<K> hashedMap(Map<K, Object> value) {
-        Map<K, HashedTree<?>> hashedTrees = mapTree(value, this::hashedTree);
-        Hash hash = hashForMap(hashedTrees);
-        return new Node<>(hash, hashedTrees);
+    @SuppressWarnings("unchecked")
+    Node<K> hashedMap(Map<?, ?> value) {
+        return (Node<K>) hashedTree(value);
     }
 
     @SuppressWarnings("unchecked")
     private HashedTree<?> hashedTree(Object value) {
-        return value == null ? NULL : switch (value) {
-            case Map<?, ?> map -> {
-                Map<K, HashedTree<?>> hashedMap =
-                    mapTree((Map<K, Object>) map, this::hashedTree);
-                yield new Node<>(hashForMap(hashedMap), hashedMap);
-            }
-            case Iterable<?> iterable -> hashedValues(iterable);
-            default -> value.getClass().isArray()
-                ? hashedValues(iterable(value))
-                : hashedLeaf(value);
-        };
+        return value == null
+            ? NULL
+            : switch (value) {
+                case Map<?, ?> map -> nodeForMap((Map<K, Object>) map);
+                case Iterable<?> iterable -> hashedList(iterable);
+                default -> value.getClass().isArray()
+                    ? hashedList(iterable(value))
+                    : leafFor(value);
+            };
     }
 
-    private Nodes hashedValues(Iterable<?> values) {
-        List<? extends HashedTree<?>> hashedValues = mapValues(values, this::hashedTree);
+    private Nodes hashedList(Iterable<?> iterable) {
+        List<? extends HashedTree<?>> hashedValues = mapValues(iterable, this::hashedTree);
         return new Nodes(hashForList(hashedValues), hashedValues);
     }
 
-    private Leaf hashedLeaf(Object value) {
+    private Node<K> nodeForMap(Map<K, Object> map) {
+        Map<K, HashedTree<?>> hashedMap = normalized(map);
+        return new Node<>(hashForMap(hashedMap), hashedMap);
+    }
+
+    private Leaf leafFor(Object value) {
         return new Leaf(leafHasher.hash(value), value);
     }
 
@@ -92,5 +102,29 @@ final class RecursiveTreeHasher<K> {
             hashHb.apply(value.hash());
         });
         return hb.get();
+    }
+
+    private Map<K, HashedTree<?>> normalized(Map<?, ?> value) {
+        return Collections.unmodifiableMap(value.entrySet()
+            .stream()
+            .filter(hasData())
+            .collect(Collectors.toMap(
+                entry -> keyHandler.normalize(entry.getKey()),
+                entry -> hashedTree(entry.getValue()),
+                noMerge(),
+                sizedMap(value.size())
+            )));
+    }
+
+    private static Predicate<Map.Entry<?, ?>> hasData() {
+        return entry -> !isEmpty(entry.getValue());
+    }
+
+    private static boolean isEmpty(Object value) {
+        return value != null && switch (value) {
+            case Map<?, ?> map -> map.isEmpty();
+            case Iterable<?> iterable -> !iterable.iterator().hasNext();
+            case Object object -> object.getClass().isArray() && isEmpty(iterable(object));
+        };
     }
 }
