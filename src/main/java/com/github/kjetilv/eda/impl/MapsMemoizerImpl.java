@@ -129,21 +129,24 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
             throw new IllegalStateException(this + " is complete, cannot put " + identifier);
         }
         return switch (recursiveTreeHasher.hashedTree(value)) {
-            case Node<?> node -> withWriteLock(() ->
-                update(identifier, (Node<K>) node, failOnConflict));
+            case Node<?> node -> {
+                CanonicalValue canonical = canonicalSubstructuresCataloguer.canonical((Node<K>) node);
+                yield update(identifier, canonical, (Node<K>) node, failOnConflict);
+            }
             case HashedTree<?> other -> throw new IllegalArgumentException(
                 "Unexpected hashed tree " + other
             );
         };
     }
 
-    private boolean update(I identifier, Node<K> node, boolean failOnConflict) {
-        if (shouldPut(identifier, failOnConflict)) {
-            CanonicalValue canonicalValue = canonicalSubstructuresCataloguer.canonical(node);
-            store(identifier, node, canonicalValue);
-            return true;
-        }
-        return false;
+    private boolean update(I identifier, CanonicalValue canonicalValue, Node<K> node, boolean failOnConflict) {
+        return withWriteLock(() -> {
+            if (shouldPut(identifier, failOnConflict)) {
+                store(identifier, node, canonicalValue);
+                return true;
+            }
+            return false;
+        });
     }
 
     @SuppressWarnings({"unchecked", "unused"})
