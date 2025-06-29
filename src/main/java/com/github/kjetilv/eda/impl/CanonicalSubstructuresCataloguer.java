@@ -32,6 +32,9 @@ final class CanonicalSubstructuresCataloguer<K> {
      * Traverses the {@link HashedTree hashed tree} and re-builds it.  New substructures found in incoming
      * structures are recorded under their respective {@link HashedTree#hash() hashes}.  If the hash is
      * recorded already, that occurrence is retrieved and used to replace the incoming one.
+     * <p>
+     * This method tries to show the recursive flow with a minimum of fuss, which is why it calls out
+     * to a lot of one-liners, which would otherwise add up to a lot of clutter.
      *
      * @param hashedTree Hashed tree
      * @return A {@link CanonicalValue value} which may be either a {@link CanonicalValue.Collision collision},
@@ -94,14 +97,28 @@ final class CanonicalSubstructuresCataloguer<K> {
     private static <T> CanonicalValue canonical(T existing, T value, Function<T, CanonicalValue> wrap) {
         return existing == null ? wrap.apply(value)
             : existing.equals(value) ? wrap.apply(existing)
-                : new CanonicalValue.Collision(value);
+                : CanonicalValue.COLLISION;
     }
 
-    private static <K> Optional<CanonicalValue> collision(Map<K, CanonicalValue> canonicalValues) {
-        return collision(canonicalValues.values());
+    /**
+     * Collision, of any
+     *
+     * @param map Map
+     * @return Any collision
+     */
+    private static Optional<CanonicalValue> collision(Map<?, CanonicalValue> map) {
+        return collision(map.values());
     }
 
+    /**
+     * Collision, of any
+     *
+     * @param values List
+     * @return Any collision
+     */
     private static Optional<CanonicalValue> collision(Collection<CanonicalValue> values) {
-        return values.stream().filter(CanonicalValue.Collision.class::isInstance).findAny();
+        return values.stream()
+            .filter(CanonicalValue::collision)
+            .findFirst();
     }
 }

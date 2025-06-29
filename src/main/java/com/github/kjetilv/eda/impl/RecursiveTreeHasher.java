@@ -56,33 +56,33 @@ final class RecursiveTreeHasher<K> {
     }
 
     @SuppressWarnings("unchecked")
-    private HashedTree<?> hashedTree(Object value) {
+    HashedTree<?> hashedTree(Object value) {
         return value == null
             ? NULL
             : switch (value) {
                 case Map<?, ?> map -> nodeForMap((Map<K, Object>) map);
-                case Iterable<?> iterable -> hashedList(iterable);
+                case Iterable<?> iterable -> nodesForIterable(iterable);
                 default -> value.getClass().isArray()
-                    ? hashedList(iterable(value))
+                    ? nodesForIterable(iterable(value))
                     : leafFor(value);
             };
     }
 
-    private Nodes hashedList(Iterable<?> iterable) {
+    private Nodes nodesForIterable(Iterable<?> iterable) {
         List<? extends HashedTree<?>> hashedValues = mapValues(iterable, this::hashedTree);
-        return new Nodes(hashForList(hashedValues), hashedValues);
+        return new Nodes(listHash(hashedValues), hashedValues);
     }
 
     private Node<K> nodeForMap(Map<K, Object> map) {
         Map<K, HashedTree<?>> hashedMap = normalized(map);
-        return new Node<>(hashForMap(hashedMap), hashedMap);
+        return new Node<>(mapHash(hashedMap), hashedMap);
     }
 
     private Leaf leafFor(Object value) {
-        return new Leaf(leafHasher.hash(value), value);
+        return new Leaf(leafHash(value), value);
     }
 
-    private Hash hashForList(List<? extends HashedTree<?>> trees) {
+    private Hash listHash(List<? extends HashedTree<?>> trees) {
         HashBuilder<byte[]> hb = newBuilder.get();
         HashBuilder<Hash> hashHb = hb.map(Hash::bytes);
         hb.<Integer>map(Hashes::bytes).hash(trees.size());
@@ -92,7 +92,7 @@ final class RecursiveTreeHasher<K> {
         return hashHb.get();
     }
 
-    private Hash hashForMap(Map<K, ? extends HashedTree<?>> tree) {
+    private Hash mapHash(Map<K, ? extends HashedTree<?>> tree) {
         HashBuilder<byte[]> hb = newBuilder.get();
         HashBuilder<Hash> hashHb = hb.map(Hash::bytes);
         HashBuilder<K> keyHb = hb.map(keyHandler::bytes);
@@ -102,6 +102,10 @@ final class RecursiveTreeHasher<K> {
             hashHb.apply(value.hash());
         });
         return hb.get();
+    }
+
+    private Hash leafHash(Object value) {
+        return leafHasher.hash(value);
     }
 
     private Map<K, HashedTree<?>> normalized(Map<?, ?> value) {

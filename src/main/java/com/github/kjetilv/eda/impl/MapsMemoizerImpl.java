@@ -123,30 +123,44 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
         return canonicalBytes.computeIfAbsent(key, keyHandler::bytes);
     }
 
-    @SuppressWarnings({"unchecked", "unused"})
+    @SuppressWarnings("unchecked")
     private boolean put(I identifier, Map<?, ?> value, boolean failOnConflict) {
         if (complete.get()) {
             throw new IllegalStateException(this + " is complete, cannot put " + identifier);
         }
-        Node<K> hashedTree = recursiveTreeHasher.hashedMap(value);
-        CanonicalValue canonicalValue = canonicalSubstructuresCataloguer.canonical(hashedTree);
-        return withWriteLock(() -> {
-            if (shouldPut(identifier, failOnConflict)) {
-                switch (canonicalValue) {
-                    case CanonicalValue.Node<?>(Map<?, Object> map) -> {
-                        memoizedHashes.put(identifier, hashedTree.hash());
-                        canonicalObjects.put(hashedTree.hash(), (Map<K, Object>) map);
-                    }
-                    case CanonicalValue.Collision __ -> overflowObjects.put(
-                        identifier,
-                        hashedTree.unwrap()
-                    );
-                    default -> throw new IllegalStateException("Unexpected canonical value " + canonicalValue);
-                }
-                return true;
+        return switch (recursiveTreeHasher.hashedTree(value)) {
+            case Node<?> node -> withWriteLock(() ->
+                update(identifier, (Node<K>) node, failOnConflict));
+            case HashedTree<?> other -> throw new IllegalArgumentException(
+                "Unexpected hashed tree " + other
+            );
+        };
+    }
+
+    private boolean update(I identifier, Node<K> node, boolean failOnConflict) {
+        if (shouldPut(identifier, failOnConflict)) {
+            CanonicalValue canonicalValue = canonicalSubstructuresCataloguer.canonical(node);
+            store(identifier, node, canonicalValue);
+            return true;
+        }
+        return false;
+    }
+
+    @SuppressWarnings({"unchecked", "unused"})
+    private void store(I identifier, Node<K> node, CanonicalValue canonicalValue) {
+        switch (canonicalValue) {
+            case CanonicalValue.Node<?>(Map<?, Object> map) -> {
+                memoizedHashes.put(identifier, node.hash());
+                canonicalObjects.put(node.hash(), (Map<K, Object>) map);
             }
-            return false;
-        });
+            case CanonicalValue.Collision __ -> overflowObjects.put(
+                identifier,
+                node.unwrap()
+            );
+            default -> throw new IllegalStateException(
+                "Unexpected canonical value for node " + node + ": " + canonicalValue
+            );
+        }
     }
 
     private MapsMemoizerImpl<I, K> doComplete() {
@@ -158,7 +172,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
         return this;
     }
 
-    private Boolean shouldPut(I identifier, boolean failOnConflict) {
+    private boolean shouldPut(I identifier, boolean failOnConflict) {
         if (!memoizedHashes.containsKey(identifier)) {
             return true;
         }

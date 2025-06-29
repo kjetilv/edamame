@@ -10,10 +10,13 @@ import java.util.Map;
  * be invoked after all data are inserted. This allows further savings by throwing away internal
  * book-keeping state and locking down the memoizer for further puts.
  * <p>
- * Extends {@link MemoizedMaps} to enable lookup of stored maps even before {@link #complete() completion}.
+ * Use the {@link MapsMemoizers} factory class to create instances.
+ * <p>
+ * Note: Extends {@link MemoizedMaps} to enable lookup of stored maps even before {@link #complete() completion}.
  *
  * @param <I> Id type, used to identify maps
  * @param <K> Key type, used as keys in stored maps
+ * @see MapsMemoizers
  */
 @SuppressWarnings("unused")
 public interface MapsMemoizer<I, K> extends MemoizedMaps<I, K> {
@@ -34,7 +37,7 @@ public interface MapsMemoizer<I, K> extends MemoizedMaps<I, K> {
      * @param identifier Identifier
      * @param value      Map
      * @return true iff the map was added.  If false, the memoizer was unchanged
-     * @throws IllegalStateException    If this instance is {@link #complete()}
+     * @throws IllegalStateException If this instance is {@link #complete()}
      */
     boolean putIfAbsent(I identifier, Map<?, ?> value);
 

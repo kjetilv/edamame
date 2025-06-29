@@ -24,7 +24,7 @@ public final class MapMemoizerFactory {
 
     /**
      * @param handler   Key handler, null means default behaviour
-     * @param pojoBytes Leaf bytes
+     * @param pojoBytes Pojo bytes
      * @return Map memoizer
      */
     public static <I, K> MapsMemoizer<I, K> create(KeyHandler<K> handler, PojoBytes pojoBytes) {
@@ -32,7 +32,8 @@ public final class MapMemoizerFactory {
     }
 
     /**
-     * @param pojoBytes@return Map memoizer
+     * @param pojoBytes Pojo bytes
+     * @return Map memoizer
      */
     static <I, K> MapsMemoizer<I, K> create(PojoBytes pojoBytes) {
         return create(null, pojoBytes, null);

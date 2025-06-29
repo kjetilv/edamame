@@ -28,7 +28,7 @@ final class DefaultLeafHasher implements LeafHasher {
 
     DefaultLeafHasher(Supplier<HashBuilder<byte[]>> newBuilder, PojoBytes pojoBytes) {
         this.newBuilder = Objects.requireNonNull(newBuilder, "newBuilder");
-        this.pojoBytes = Objects.requireNonNull(pojoBytes, "leafBytes");
+        this.pojoBytes = Objects.requireNonNull(pojoBytes, "pojoBytes");
     }
 
     @Override

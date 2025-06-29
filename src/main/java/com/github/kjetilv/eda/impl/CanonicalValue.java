@@ -11,11 +11,17 @@ interface CanonicalValue {
 
     Null NULL = new Null();
 
+    Collision COLLISION = new Collision();
+
     /**
      * @return Canonical value
      */
     default Object value() {
         return null;
+    }
+
+    default boolean collision() {
+        return false;
     }
 
     record Node<K>(Map<K, Object> value) implements CanonicalValue {
@@ -27,7 +33,12 @@ interface CanonicalValue {
     record Leaf(Object value) implements CanonicalValue {
     }
 
-    record Collision(Object value) implements CanonicalValue {
+    record Collision() implements CanonicalValue {
+
+        @Override
+        public boolean collision() {
+            return true;
+        }
     }
 
     record Null() implements CanonicalValue {
