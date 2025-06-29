@@ -91,6 +91,11 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
     }
 
     @Override
+    public int size() {
+        return memoizedHashes.size() + overflowObjects.size();
+    }
+
+    @Override
     public Map<K, ?> get(I identifier) {
         requireNonNull(identifier, "identifier");
         return withReadLock(() -> {
@@ -138,8 +143,9 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
                     );
                     default -> throw new IllegalStateException("Unexpected canonical value " + canonicalValue);
                 }
+                return true;
             }
-            return true;
+            return false;
         });
     }
 

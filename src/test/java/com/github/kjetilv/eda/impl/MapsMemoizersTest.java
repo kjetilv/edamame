@@ -17,6 +17,7 @@ import java.util.stream.IntStream;
 
 import static com.github.kjetilv.eda.impl.MapMemoizerFactory.create;
 import static java.util.Map.entry;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MapsMemoizersTest {
@@ -564,6 +565,19 @@ class MapsMemoizersTest {
 
         cache.put(42L, map);
         assertEquals(map, cache.get(42L));
+    }
+
+    @Test
+    void shouldPutIfAbsent() {
+        MapsMemoizer<Long, String> cache = mapsMemoizer();
+
+        Map<String, String> foo = Map.of("foo", "bar");
+        assertTrue(cache.putIfAbsent(42L, foo));
+        assertEquals(1, cache.size());
+        assertFalse(cache.putIfAbsent(42L, Map.of("zip", "zot")));
+        assertEquals(1, cache.size());
+
+        assertEquals(foo, cache.get(42L));
     }
 
     private static MapsMemoizer<Long, String> mapsMemoizer() {
