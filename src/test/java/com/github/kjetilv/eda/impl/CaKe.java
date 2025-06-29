@@ -4,7 +4,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("NullableProblems")
-public record CaKe(String key)  {
+public record CaKe(String key) implements Comparable<CaKe> {
+
+    @Override
+    public int compareTo(CaKe o) {
+        return key.compareTo(o.key);
+    }
 
     private static final Map<String, CaKe> canon = new ConcurrentHashMap<>();
 
