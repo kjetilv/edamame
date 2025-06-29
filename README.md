@@ -6,6 +6,11 @@ represented as maps and lists of maps and lists, with primitive leaves.
 It is intended for cases where we are dealing with many objects of the same type, with considerable shared data.
 edamame identifies and canonicalizes shared values and substructures, enabling a larger number of objects in memory.
 
+To use it, assign a unique id to you map and store it under that id. Then use the same id to look it up later.
+
+That's really it. Behind the scenes, all common leaves and substructures have been identified and stored exactly once.
+(Except in rare cases of a hash collisions.)
+
 ## Implementation Notes
 
 ### Supported data forms
@@ -32,4 +37,4 @@ However, the order of items in lists will be preserved, and nulls in lists will 
 
 ### Immutability
 
-Data retrieved from the memoizer is immutable.
+Data retrieved from the memoizer is immutable.__
