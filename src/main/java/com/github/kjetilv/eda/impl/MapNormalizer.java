@@ -18,21 +18,9 @@ final class MapNormalizer<K> {
         this.keyHandler = requireNonNull(keyHandler, "keyHandler");
     }
 
+    @SuppressWarnings("unchecked")
     Map<K, Object> normalize(Map<?, ?> map) {
-        return requireNonNull(map, "map")
-            .entrySet()
-            .stream()
-            .filter(MapNormalizer::hasData)
-            .collect(
-                Collectors.toMap(
-                    entry ->
-                        keyHandler.normalize(entry.getKey()),
-                    entry ->
-                        rewriteObject(entry.getValue()),
-                    noMerge(),
-                    () ->
-                        sizedMap(map.size(), IdentityHashMap::new)
-                ));
+        return (Map<K, Object>) rewriteObject(map);
     }
 
     private Object rewriteObject(Object value) {
