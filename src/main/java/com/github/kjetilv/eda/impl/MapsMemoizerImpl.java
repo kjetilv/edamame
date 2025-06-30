@@ -155,8 +155,8 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
                                 identifier,
                                 unwrap(hashedNode)
                             );
-                            default -> throw new IllegalStateException(
-                                "Unexpected canonical value for node " + hashedNode + ": " + hashedNode
+                            case CanonicalValue other -> throw new IllegalStateException(
+                                "Unexpected canonical value for node " + hashedNode + ": " + other
                             );
                         }
                         return true;
