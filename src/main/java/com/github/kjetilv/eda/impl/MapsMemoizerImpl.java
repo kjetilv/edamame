@@ -29,6 +29,7 @@ import static java.util.Objects.requireNonNull;
  * @param <I> Identifier type.  An identifier identifies exactly one of the cached maps
  * @param <K> Key type for the maps. All maps (and their submaps) will be stored with keys of this type
  */
+@SuppressWarnings("unchecked")
 class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, KeyHandler<K> {
 
     private final Map<I, Hash> memoizedHashes = new HashMap<>();
@@ -123,47 +124,41 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
         return canonicalBytes.computeIfAbsent(key, keyHandler::bytes);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unused"})
     private boolean put(I identifier, Map<?, ?> value, boolean failOnConflict) {
         if (complete.get()) {
             throw new IllegalStateException(this + " is complete, cannot put " + identifier);
         }
         return switch (recursiveTreeHasher.hashedTree(value)) {
-            case Node<?> node -> {
-                CanonicalValue canonical = canonicalSubstructuresCataloguer.canonical((Node<K>) node);
-                yield update(identifier, canonical, (Node<K>) node, failOnConflict);
+            case Node<?> hashedNode -> {
+                CanonicalValue canonical =
+                    canonicalSubstructuresCataloguer.canonical(hashedNode);
+                yield withWriteLock(() -> {
+                    if (shouldPut(identifier, failOnConflict)) {
+                        switch (canonical) {
+                            case CanonicalValue.Node<?> valueNode -> {
+                                memoizedHashes.put(identifier, hashedNode.hash());
+                                canonicalObjects.put(
+                                    hashedNode.hash(),
+                                    unwrap(valueNode)
+                                );
+                            }
+                            case CanonicalValue.Collision __ -> overflowObjects.put(
+                                identifier,
+                                unwrap(hashedNode)
+                            );
+                            default -> throw new IllegalStateException(
+                                "Unexpected canonical value for node " + hashedNode + ": " + hashedNode
+                            );
+                        }
+                        return true;
+                    }
+                    return false;
+                });
             }
-            case HashedTree<?> other -> throw new IllegalArgumentException(
-                "Unexpected hashed tree " + other
+            case HashedTree<?> other -> throw new IllegalArgumentException("Unexpected hashed tree " + other
             );
         };
-    }
-
-    private boolean update(I identifier, CanonicalValue canonicalValue, Node<K> node, boolean failOnConflict) {
-        return withWriteLock(() -> {
-            if (shouldPut(identifier, failOnConflict)) {
-                store(identifier, node, canonicalValue);
-                return true;
-            }
-            return false;
-        });
-    }
-
-    @SuppressWarnings({"unchecked", "unused"})
-    private void store(I identifier, Node<K> node, CanonicalValue canonicalValue) {
-        switch (canonicalValue) {
-            case CanonicalValue.Node<?>(Map<?, Object> map) -> {
-                memoizedHashes.put(identifier, node.hash());
-                canonicalObjects.put(node.hash(), (Map<K, Object>) map);
-            }
-            case CanonicalValue.Collision __ -> overflowObjects.put(
-                identifier,
-                node.unwrap()
-            );
-            default -> throw new IllegalStateException(
-                "Unexpected canonical value for node " + node + ": " + canonicalValue
-            );
-        }
     }
 
     private MapsMemoizerImpl<I, K> doComplete() {
@@ -200,6 +195,15 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
 
     private <T> T withWriteLock(Supplier<T> action) {
         return withLock(lock.writeLock(), action);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <K> Map<K, Object> unwrap(Node<?> node) {
+        return ((Node<K>) node).unwrap();
+    }
+
+    private static <K> Map<K, Object> unwrap(CanonicalValue.Node<?> valueNode) {
+        return ((CanonicalValue.Node<K>) valueNode).value();
     }
 
     private static <T> T withLock(Lock lock, Supplier<T> action) {
