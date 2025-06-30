@@ -109,9 +109,17 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
 
     @Override
     public MemoizedMaps<I, K> complete() {
-        return complete.compareAndSet(false, true)
-            ? withWriteLock(this::doComplete)
-            : this;
+        if (complete.compareAndSet(false, true)) {
+            withWriteLock(() -> {
+                // Shed working data
+                this.recursiveTreeHasher = null;
+                this.canonicalSubstructuresCataloguer = null;
+                this.canonicalKeys = null;
+                this.canonicalBytes = null;
+                return this;
+            });
+        }
+        return this;
     }
 
     @Override
@@ -156,18 +164,8 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
                     return false;
                 });
             }
-            case HashedTree<?> other -> throw new IllegalArgumentException("Unexpected hashed tree " + other
-            );
+            case HashedTree<?> other -> throw new IllegalArgumentException("Unexpected hashed tree " + other);
         };
-    }
-
-    private MapsMemoizerImpl<I, K> doComplete() {
-        // Shed working data
-        this.recursiveTreeHasher = null;
-        this.canonicalSubstructuresCataloguer = null;
-        this.canonicalKeys = null;
-        this.canonicalBytes = null;
-        return this;
     }
 
     private boolean shouldPut(I identifier, boolean failOnConflict) {
