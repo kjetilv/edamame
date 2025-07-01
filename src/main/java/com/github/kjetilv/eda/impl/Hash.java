@@ -44,7 +44,6 @@ public record Hash(long l0, long l1) {
 
     private static final String RPAR = "⟩";
 
-    @SuppressWarnings("NullableProblems")
     @Override
     public String toString() {
         return LPAR + digest().substring(0, 8) + RPAR;

@@ -44,17 +44,6 @@ final class RecursiveTreeHasher<K> {
         this.leafHasher = requireNonNull(leafHasher, "leafHasher");
     }
 
-    /**
-     * Returns a {@link Node} holding the hashed map value and recursively hashed sub-trees/lists/leaves.
-     *
-     * @param value Map
-     * @return Hashed tree
-     */
-    @SuppressWarnings("unchecked")
-    Node<K> hashedMap(Map<?, ?> value) {
-        return (Node<K>) hashedTree(value);
-    }
-
     @SuppressWarnings("unchecked")
     HashedTree<?> hashedTree(Object value) {
         return value == null
