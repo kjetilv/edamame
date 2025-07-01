@@ -3,8 +3,8 @@ package com.github.kjetilv.eda.impl;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.kjetilv.eda.impl.CollectionUtils.mapTree;
-import static com.github.kjetilv.eda.impl.CollectionUtils.mapValues;
+import static com.github.kjetilv.eda.impl.CollectionUtils.transformValues;
+import static com.github.kjetilv.eda.impl.CollectionUtils.transform;
 
 /**
  * A hashed tree mirrors a structure we want to store, decorating each part of the tree with a unique
@@ -40,7 +40,7 @@ sealed interface HashedTree<T> {
         @Override
 
         public Map<K, Object> unwrap() {
-            return mapTree(
+            return CollectionUtils.transformValues(
                 valueMap,
                 HashedTree::unwrap
             );
@@ -59,7 +59,7 @@ sealed interface HashedTree<T> {
         @SuppressWarnings({"unchecked", "ClassEscapesDefinedScope"})
         @Override
         public List<? extends HashedTree<?>> unwrap() {
-            return (List<? extends HashedTree<?>>) mapValues(
+            return (List<? extends HashedTree<?>>) CollectionUtils.transform(
                 values,
                 HashedTree::unwrap
             );

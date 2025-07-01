@@ -20,7 +20,7 @@ final class CollectionUtils {
         return () -> new HashMap<>(capacity(size));
     }
 
-    static <K, V, R> Map<K, R> mapTree(Map<K, V> map, Function<V, R> transform) {
+    static <K, V, R> Map<K, R> transformValues(Map<K, V> map, Function<V, R> transform) {
         return Collections.unmodifiableMap(map.entrySet()
             .stream()
             .collect(Collectors.toMap(
@@ -31,7 +31,7 @@ final class CollectionUtils {
             )));
     }
 
-    static <K, T, V, R> Map<K, R> mapTree(Map<T, V> map, Function<T, K> keyNormalizer, Function<V, R> transform) {
+    static <K, T, V, R> Map<K, R> transformValues(Map<T, V> map, Function<T, K> keyNormalizer, Function<V, R> transform) {
         return Collections.unmodifiableMap(map.entrySet()
             .stream()
             .collect(Collectors.toMap(
@@ -42,13 +42,13 @@ final class CollectionUtils {
             )));
     }
 
-    static <T, R> List<R> mapValues(List<? extends T> list, Function<T, R> transform) {
+    static <T, R> List<R> transform(List<? extends T> list, Function<T, R> transform) {
         return list.stream()
             .map(transform)
             .toList();
     }
 
-    static <T, R> List<R> mapValues(Iterable<? extends T> list, Function<T, R> transform) {
+    static <T, R> List<R> transform(Iterable<? extends T> list, Function<T, R> transform) {
         return stream(list)
             .map(transform)
             .toList();

@@ -58,7 +58,7 @@ final class RecursiveTreeHasher<K> {
     }
 
     private Nodes nodesForIterable(Iterable<?> iterable) {
-        List<? extends HashedTree<?>> hashedValues = mapValues(iterable, this::hashedTree);
+        List<? extends HashedTree<?>> hashedValues = transform(iterable, this::hashedTree);
         return new Nodes(listHash(hashedValues), hashedValues);
     }
 

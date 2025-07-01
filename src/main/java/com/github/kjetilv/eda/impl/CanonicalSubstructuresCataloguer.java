@@ -8,8 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-import static com.github.kjetilv.eda.impl.CollectionUtils.mapTree;
-import static com.github.kjetilv.eda.impl.CollectionUtils.mapValues;
+import static com.github.kjetilv.eda.impl.CollectionUtils.transformValues;
+import static com.github.kjetilv.eda.impl.CollectionUtils.transform;
 
 /**
  * Canonicalizes {@link HashedTree hashed trees}, progressively storing and resolving shared substructures
@@ -41,31 +41,31 @@ final class CanonicalSubstructuresCataloguer<K> {
      * or a holder for the canonical value
      */
     @SuppressWarnings("unchecked")
-    public CanonicalValue canonical(HashedTree<?> hashedTree) {
+    public CanonicalValue toCanonical(HashedTree<?> hashedTree) {
         return switch (hashedTree) {
             case HashedTree.Node<?>(Hash hash, Map<?, ? extends HashedTree<?>> valueMap) -> {
-                Map<K, CanonicalValue> canonicalTrees = recurseTrees((Map<K, HashedTree<?>>) valueMap);
+                Map<K, CanonicalValue> canonicalTrees = recurseMap((Map<K, HashedTree<?>>) valueMap);
                 yield collision(canonicalTrees).orElseGet(() -> {
-                    Map<K, Object> computed = mapTree(canonicalTrees, CanonicalValue::value);
-                    return canonical(
-                        cataloguedMap(hash, computed),
-                        computed,
+                    Map<K, Object> map = mapValue(canonicalTrees);
+                    return resolve(
+                        cataloguedMap(hash, map),
+                        map,
                         CanonicalValue.Node::new
                     );
                 });
             }
             case HashedTree.Nodes(Hash hash, List<? extends HashedTree<?>> values) -> {
-                List<CanonicalValue> canonicalValues = recurseValues(values);
+                List<CanonicalValue> canonicalValues = recurseList(values);
                 yield collision(canonicalValues).orElseGet(() -> {
-                    List<Object> computed = mapValues(canonicalValues, CanonicalValue::value);
-                    return canonical(
-                        cataloguedList(hash, computed),
-                        computed,
+                    List<Object> list = listValue(canonicalValues);
+                    return resolve(
+                        cataloguedList(hash, list),
+                        list,
                         CanonicalValue.Nodes::new
                     );
                 });
             }
-            case HashedTree.Leaf(Hash hash, Object value) -> canonical(
+            case HashedTree.Leaf(Hash hash, Object value) -> resolve(
                 cataloguedLeaf(hash, value),
                 value,
                 CanonicalValue.Leaf::new
@@ -74,12 +74,12 @@ final class CanonicalSubstructuresCataloguer<K> {
         };
     }
 
-    private Map<K, CanonicalValue> recurseTrees(Map<K, HashedTree<?>> hashedTrees) {
-        return mapTree(hashedTrees, this::canonical);
+    private Map<K, CanonicalValue> recurseMap(Map<K, HashedTree<?>> hashedTrees) {
+        return transformValues(hashedTrees, this::toCanonical);
     }
 
-    private List<CanonicalValue> recurseValues(List<? extends HashedTree<?>> values) {
-        return mapValues(values, this::canonical);
+    private List<CanonicalValue> recurseList(List<? extends HashedTree<?>> values) {
+        return transform(values, this::toCanonical);
     }
 
     private Map<K, Object> cataloguedMap(Hash hash, Map<K, Object> computed) {
@@ -94,10 +94,18 @@ final class CanonicalSubstructuresCataloguer<K> {
         return leaves.putIfAbsent(hash, value);
     }
 
-    private static <T> CanonicalValue canonical(T existing, T value, Function<T, CanonicalValue> wrap) {
+    private static <T> CanonicalValue resolve(T existing, T value, Function<T, CanonicalValue> wrap) {
         return existing == null ? wrap.apply(value)
             : existing.equals(value) ? wrap.apply(existing)
                 : CanonicalValue.COLLISION;
+    }
+
+    private static List<Object> listValue(List<CanonicalValue> canonicalValues) {
+        return transform(canonicalValues, CanonicalValue::value);
+    }
+
+    private static <K> Map<K, Object> mapValue(Map<K, CanonicalValue> canonicalTrees) {
+        return transformValues(canonicalTrees, CanonicalValue::value);
     }
 
     /**

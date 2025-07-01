@@ -140,7 +140,7 @@ class MapsMemoizerImpl<I, K> implements MapsMemoizer<I, K>, MemoizedMaps<I, K>, 
         return switch (recursiveTreeHasher.hashedTree(value)) {
             case Node<?> hashedNode -> {
                 CanonicalValue canonical =
-                    canonicalSubstructuresCataloguer.canonical(hashedNode);
+                    canonicalSubstructuresCataloguer.toCanonical(hashedNode);
                 yield withWriteLock(() -> {
                     if (shouldPut(identifier, failOnConflict)) {
                         switch (canonical) {
