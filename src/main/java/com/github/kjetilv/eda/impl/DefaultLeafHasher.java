@@ -9,7 +9,6 @@ import java.time.chrono.ChronoLocalDate;
 import java.time.chrono.ChronoLocalDateTime;
 import java.time.chrono.ChronoZonedDateTime;
 import java.time.chrono.Era;
-import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAccessor;
 import java.util.Objects;
 import java.util.UUID;
@@ -48,7 +47,7 @@ final class DefaultLeafHasher implements LeafHasher {
             case BigDecimal b -> hashBigDecimal(T.BIG_DECIMAL.tag(hb), b);
             case BigInteger b -> hashBigInteger(T.BIG_INTEGER.tag(hb), b);
             case Number n -> hashNumber(T.NUMBER.tag(hb), n);
-            case Temporal temporal -> hashTemporal(hb, temporal);
+            case TemporalAccessor temporal -> hashTemporal(hb, temporal);
             case UUID u -> hashUUID(T.UUID.tag(hb), u);
             default -> hashLeaf(T.OBJECT.tag(hb), leaf, anyHash);
         };
